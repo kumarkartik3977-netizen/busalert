@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { isDemoMode, setDemoMode } from "../lib/geolocation";
+import { isDemoMode, setDemoMode } from "../../lib/geolocation";
+import { auth, db } from "../../lib/firebase";
+import { setDoc } from "firebase/firestore";
 
 export interface LoginFormData {
   email: string;

@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { isDemoMode, setDemoMode, simulateBusMovement, getCurrentLocation } from "../lib/geolocation";
-import { calculateETA } from "../lib/eta";
+import { isDemoMode, setDemoMode, simulateBusMovement, getCurrentLocation } from "../../lib/geolocation";
+import { calculateETA } from "../../lib/eta";
+import { auth } from "../../lib/firebase";
 
 export interface RouteStop {
   stopId: string;

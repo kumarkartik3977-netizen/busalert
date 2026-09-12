@@ -3,14 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { calculateETA } from "../lib/eta";
-import { isDemoMode, setDemoMode } from "../lib/geolocation";
+import { calculateETA } from "../../lib/eta";
+import { isDemoMode, setDemoMode } from "../../lib/geolocation";
 import { useRouter } from "next/navigation";
 
 interface BusInfo {
   busNumber: string;
   status: "ON_ROUTE" | "DELAYED" | "OFFLINE";
-  currentLocation: { latitude: number; longitude; number };
+  currentLocation: { latitude: number; longitude: number };
   eta: number;
   nextStop: string;
   lastUpdate: number;
@@ -52,7 +52,7 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */
+      {/* Header */}
       <header className="border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">BUSALERT</h1>
@@ -72,7 +72,7 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
 
       <main className="max-w-7xl mx-auto p-4">
         
-        {/* Bus Status Card */
+        {/* Bus Status Card */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <div className="flex items-center justify-between">
             <div>
@@ -88,7 +88,7 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
           <p className="mt-2 text-sm text-gray-600">Next stop: {bus.nextStop}</p>
         </div>
 
-        {/* Leave Now Banner */
+        {/* Leave Now Banner */}
         {eta <= 10 && (
           <div className="mt-6 p-4 rounded-xl {showLeaveNow ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"} border-l-4 {showLeaveNow ? "border-red-400" : "border-yellow-400"}">
             <div className="flex items-start">
@@ -103,7 +103,7 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
           </div>
         )}
 
-        {/* Action Buttons */
+        {/* Action Buttons */}
         <div className="mt-8 grid grid-cols-2 gap-4">
           <button
             onClick={() => setDemoMode(!demoToggled)}
@@ -116,7 +116,7 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
           </button>
         </div>
 
-        {/* Today's Schedule */
+        {/* Today's Schedule */}
         <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-200">
           <h3 className="font-medium mb-3">TODAY'S SCHEDULE</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
@@ -131,7 +131,7 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
           </div>
         </div>
 
-        {/* Recent Status */
+        {/* Recent Status */}
         <div className="mt-8 p-4 bg-white rounded-xl shadow-sm">
           <h3 className="font-medium mb-3">RECENT STATUS</h3>
           <div className="space-y-2 text-sm">
