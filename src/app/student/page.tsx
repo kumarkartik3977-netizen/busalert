@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { calculateETA } from "../../lib/eta";
-import { isDemoMode, setDemoMode } from "../../lib/geolocation";
+import { calculateETA } from "@/lib/eta";
+import { isDemoMode, setDemoMode } from "@/lib/geolocation";
 import { useRouter } from "next/navigation";
 
 interface BusInfo {
@@ -25,10 +25,25 @@ interface StudentDashboardProps {
   };
 }
 
-export default function StudentDashboard({ bus, studentStop }: StudentDashboardProps) {
+const defaultBus: BusInfo = {
+  busNumber: "",
+  status: "OFFLINE",
+  currentLocation: { latitude: 0, longitude: 0 },
+  eta: 0,
+  nextStop: "",
+  lastUpdate: 0,
+};
+
+const defaultStop = {
+  name: "",
+  latitude: 0,
+  longitude: 0,
+};
+
+export default function StudentDashboard({ bus = defaultBus, studentStop = defaultStop }: StudentDashboardProps) {
   const [eta, setETA] = useState(bus.eta);
   const [showLeaveNow, setShowLeaveNow] = useState(false);
-  const [demoToggled, setDemoToggled] = useState(isDemoMode());
+  const [demoToggled, setDemoToggled] = useState(false);
   const router = useRouter();
 
   // Calculate ETA and leave-now logic
@@ -90,7 +105,7 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
 
         {/* Leave Now Banner */}
         {eta <= 10 && (
-          <div className="mt-6 p-4 rounded-xl {showLeaveNow ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"} border-l-4 {showLeaveNow ? "border-red-400" : "border-yellow-400"}">
+          <div className={`mt-6 p-4 rounded-xl ${showLeaveNow ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"} border-l-4 ${showLeaveNow ? "border-red-400" : "border-yellow-400"}`}>
             <div className="flex items-start">
               <span className="text-2xl mr-3 flex-shrink-0">{showLeaveNow ? "🚨" : "🚌"}</span>
               <div className="flex-1">
@@ -107,7 +122,7 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
         <div className="mt-8 grid grid-cols-2 gap-4">
           <button
             onClick={() => setDemoMode(!demoToggled)}
-            className="flex-1 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors {demoToggled ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}"
+            className={`flex-1 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors ${demoToggled ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}
           >
             {demoToggled ? "Switch to Live" : "Start Demo Mode"}
           </button>

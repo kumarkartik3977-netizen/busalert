@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { isDemoMode, setDemoMode, simulateBusMovement, getCurrentLocation } from "../../lib/geolocation";
-import { calculateETA } from "../../lib/eta";
-import { auth } from "../../lib/firebase";
+import { isDemoMode, setDemoMode, simulateBusMovement, getCurrentLocation } from "@/lib/geolocation";
+import { calculateETA } from "@/lib/eta";
+import { getFirebaseAuth } from "@/lib/firebase";
 
 export interface RouteStop {
   stopId: string;
@@ -23,19 +23,19 @@ export interface DriverDashboardProps {
   onTripEnd: () => void;
 }
 
-export default function DriverDashboard({ busNumber, route, onTripStart, onTripEnd }: DriverDashboardProps) {
+export default function DriverDashboard({ busNumber = "", route = [], onTripStart, onTripEnd }: DriverDashboardProps) {
   const [state, setState] = useState({
     isOnTrip: false,
-    currentPosition: null,
+    currentPosition: null as { latitude: number; longitude: number } | null,
     currentStopIndex: 0,
     nextStopIndex: 1,
-    tripStartTime: null,
+    tripStartTime: null as number | null,
     demoProgress: 0,
   });
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
       if (!user) router.push("/login");
     });
     return () => unsubscribe();
@@ -79,7 +79,7 @@ export default function DriverDashboard({ busNumber, route, onTripStart, onTripE
     setState({
       ...state,
       isOnTrip: true,
-      currentPosition: location,
+      currentPosition: { latitude: location.latitude, longitude: location.longitude },
       tripStartTime: Date.now(),
     });
   };
@@ -93,7 +93,6 @@ export default function DriverDashboard({ busNumber, route, onTripStart, onTripE
       tripStartTime: null,
       demoProgress: 0,
     });
-    setDemoMode(false);
   };
 
   const handleDemoToggle = () => {
@@ -123,13 +122,13 @@ export default function DriverDashboard({ busNumber, route, onTripStart, onTripE
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Trip Status</p>
-              <p className="text-xl font-bold {state.isOnTrip ? "text-green-600" : "text-gray-500"}">
+              <p className={`text-xl font-bold ${state.isOnTrip ? "text-green-600" : "text-gray-500"}`}>
                 {state.isOnTrip ? "🟢 ON ROUTE" : "OFFLINE"}
               </p>
             </div>
             <button
               onClick={state.isOnTrip ? handleEndTrip : handleStartTrip}
-              className="px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors {state.isOnTrip ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}"
+              className={`px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors ${state.isOnTrip ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}`}
             >
               {state.isOnTrip ? "END TRIP" : "START TRIP"}
             </button>
@@ -154,7 +153,7 @@ export default function DriverDashboard({ busNumber, route, onTripStart, onTripE
           <div className="space-y-2 text-sm">
             {route.map((stop, index) => (
               <div key={stop.stopId} className={`flex items-center gap-3 ${index >= state.currentStopIndex && index <= state.nextStopIndex ? "text-primary" : "text-gray-500"}`}>
-                <span className="w-2 h-2 rounded-full {index === state.currentStopIndex ? "bg-green-500" : index === state.nextStopIndex ? "bg-yellow-500" : "bg-gray-300"}"></span>
+                <span className={`w-2 h-2 rounded-full ${index === state.currentStopIndex ? "bg-green-500" : index === state.nextStopIndex ? "bg-yellow-500" : "bg-gray-300"}`}></span>
                 <span>{stop.name}</span>
               </div>
             ))}

@@ -31,26 +31,13 @@ export async function getCurrentLocation(): Promise<{
   }
   
   try {
-    const position = await navigator.geolocation.getCurrentPosition(
-      (pos) => ({
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        error: undefined,
-      }),
-      (err) => {
-        // User denied permission
-        return { 
-          latitude: 0, 
-          longitude: 0, 
-          error: err.message || "Permission denied" 
-        };
-      },
-      {
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 5000,
-      }
-    );
+      });
+    });
     
     return {
       latitude: position.coords.latitude,
@@ -70,6 +57,7 @@ export async function getCurrentLocation(): Promise<{
  * Check if demo mode is enabled
  */
 export function isDemoMode(): boolean {
+  if (typeof window === "undefined") return false;
   return localStorage.getItem("busalert_demo_mode") === "true";
 }
 
@@ -77,6 +65,7 @@ export function isDemoMode(): boolean {
  * Toggle demo mode on/off
  */
 export function setDemoMode(enabled: boolean): void {
+  if (typeof window === "undefined") return;
   if (enabled) {
     localStorage.setItem("busalert_demo_mode", "true");
   } else {

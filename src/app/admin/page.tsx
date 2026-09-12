@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, query, orderBy } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { calculateETA } from "../lib/eta";
+import { calculateETA } from "@/lib/eta";
+import { getFirebaseAuth } from "@/lib/firebase";
+import * as Recharts from "recharts";
 
 interface BusAnalytics {
   busId: string;
@@ -18,10 +20,10 @@ interface BusAnalytics {
 }
 
 export default function AdminDashboard({ 
-  activeBuses, 
-  onTimeBuses, 
-  delayedBuses, 
-  offlineBuses 
+  activeBuses = 0, 
+  onTimeBuses = 0, 
+  delayedBuses = 0, 
+  offlineBuses = 0 
 }: {
   activeBuses: number;
   onTimeBuses: number;
@@ -31,7 +33,7 @@ export default function AdminDashboard({
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
       if (!user) router.push("/login");
     });
     return () => unsubscribe();
@@ -89,10 +91,9 @@ export default function AdminDashboard({
                 <Recharts.Pie
                   dataKey="onTimePercentage"
                   name="Bus"
-                  label={{ position: "inside", color: "#fff", fontSize: 12 }}
                 >
                   {buses.map((bus, i) => (
-                    <Recharts.Path key={`path-${i}`} color={bus.onTimePercentage > 80 ? "green" : bus.onTimePercentage > 60 ? "orange" : "red"} />
+                    <Recharts.Cell key={`cell-${i}`} fill={bus.onTimePercentage > 80 ? "#10b981" : bus.onTimePercentage > 60 ? "#f59e0b" : "#ef4444"} />
                   ))}
                 </Recharts.Pie>
                 <Recharts.Tooltip />
@@ -118,7 +119,6 @@ export default function AdminDashboard({
             <div className="h-48">
               <Recharts.LineChart data={buses} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                 <Recharts.Line type="monotone" dataKey="totalTrips" stroke="#8884d8" activeDot={{ r: 8 }} />
-                <Recharts.Dot dataKey="totalTrips" r={5} fill="#8884d8" />
                 <Recharts.XAxis dataKey="busNumber" />
                 <Recharts.YAxis />
                 <Recharts.Tooltip />

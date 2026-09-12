@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { isDemoMode, setDemoMode } from "../../lib/geolocation";
-import { auth, db } from "../../lib/firebase";
+import { isDemoMode, setDemoMode } from "@/lib/geolocation";
+import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase";
 import { setDoc } from "firebase/firestore";
 
 export interface LoginFormData {
@@ -30,7 +30,7 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
       if (user) {
         router.push("/dashboard/student");
       }
@@ -48,7 +48,7 @@ export default function LoginPage() {
       if (demo) {
         setDemoMode(true);
         
-        const userRef = doc(db, "users", `demo_${role}`);
+        const userRef = doc(getFirebaseDb(), "users", `demo_${role}`);
         await setDoc(userRef, {
           uid: `demo_${role}`,
           email: demo.email,

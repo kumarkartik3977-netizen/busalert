@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { calculateETA } from "../lib/eta";
+import { calculateETA } from "@/lib/eta";
 
 interface NotificationBannerProps {
   busEta: number;

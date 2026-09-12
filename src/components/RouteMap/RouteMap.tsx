@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { isDemoMode, setDemoMode, simulateBusMovement, getCurrentLocation } from "../lib/geolocation";
-import { calculateETA } from "../lib/eta";
+import { isDemoMode, setDemoMode, simulateBusMovement, getCurrentLocation } from "@/lib/geolocation";
+import { calculateETA } from "@/lib/eta";
 
 interface RouteStop {
   stopId: string;
@@ -48,14 +48,14 @@ export default function RouteMap({ route, currentPosition, currentStopIndex, nex
             <path
               d={route.map((stop, i) => {
                 if (i === 0) return `M ${stop.longitude} ${stop.latitude}`;
-                const prev = route[i - 1];
                 return `L ${stop.longitude} ${stop.latitude}`;
-              }) || "M 0 0"}
+              }).join(" ") || "M 0 0"}
               stroke="#3b82f6"
               strokeWidth={2}
               fill="none"
             />
             {route.map((stop, i) => (
+              <>
               <circle
                 key={stop.stopId}
                 cx={stop.longitude}
@@ -73,6 +73,7 @@ export default function RouteMap({ route, currentPosition, currentStopIndex, nex
               >
                 {stop.name}
               </text>
+              </>
             ))}
           </svg>
           

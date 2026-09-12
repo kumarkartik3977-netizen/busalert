@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { calculateETA } from "../lib/eta";
+import { calculateETA } from "@/lib/eta";
 
 interface ETACardProps {
   busLocation: { latitude: number; longitude: number };
@@ -28,7 +28,7 @@ export default function ETACard({ busLocation, destinationStop, studentWalkingTi
     <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
       <h3 className="font-medium mb-3">ETA & Leave Now</h3>
       
-      <div className="text-3xl font-extrabold {etaResult.shouldLeaveNow ? "text-red-600" : "text-primary"}">
+      <div className={`text-3xl font-extrabold ${etaResult.shouldLeaveNow ? "text-red-600" : "text-primary"}`}>
         {etaResult.minutes} min
       </div>
       
