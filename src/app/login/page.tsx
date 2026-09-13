@@ -69,39 +69,39 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-        <h2 className="text-2xl font-bold mb-6 text-center">BUSALERT</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900">BUSALERT</h2>
         
         <form onSubmit={handleSignIn} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
+            <label className="block text-sm font-medium mb-2 text-gray-800">Email</label>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               required
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-primary text-gray-900"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Password</label>
+            <label className="block text-sm font-medium mb-2 text-gray-800">Password</label>
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               required
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-primary text-gray-900"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Role</label>
+            <label className="block text-sm font-medium mb-2 text-gray-800">Role</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-primary text-gray-900"
             >
               <option value="student">Student</option>
               <option value="driver">Driver</option>
@@ -119,19 +119,19 @@ export default function LoginPage() {
           <div className="grid grid-cols-3 gap-2 mt-3">
             <button
               onClick={() => setRole("student")}
-              className={role === "student" ? "bg-primary text-white" : "bg-gray-200 text-gray-700"}
+              className={`py-2 px-3 rounded-md font-medium transition-colors ${role === "student" ? "bg-primary text-white" : "bg-gray-200 text-gray-800 hover:bg-gray-300"}`}
             >
               Student
             </button>
             <button
               onClick={() => setRole("driver")}
-              className={role === "driver" ? "bg-primary text-white" : "bg-gray-200 text-gray-700"}
+              className={`py-2 px-3 rounded-md font-medium transition-colors ${role === "driver" ? "bg-primary text-white" : "bg-gray-200 text-gray-800 hover:bg-gray-300"}`}
             >
               Driver
             </button>
             <button
               onClick={() => setRole("admin")}
-              className={role === "admin" ? "bg-primary text-white" : "bg-gray-200 text-gray-700"}
+              className={`py-2 px-3 rounded-md font-medium transition-colors ${role === "admin" ? "bg-primary text-white" : "bg-gray-200 text-gray-800 hover:bg-gray-300"}`}
             >
               Admin
             </button>
