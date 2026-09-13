@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { isDemoMode, setDemoMode, simulateBusMovement, getCurrentLocation } from "@/lib/geolocation";
-import { calculateETA } from "@/lib/eta";
 import { getFirebaseAuth } from "@/lib/firebase";
 
 export interface RouteStop {
@@ -101,16 +99,15 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200">
+    <div className="min-h-screen bg-gray-100">
+      <header className="border-b border-gray-300 bg-white">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">DRIVER DASHBOARD</h1>
+          <h1 className="text-2xl font-bold text-gray-900">DRIVER DASHBOARD</h1>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">Bus #{busNumber}</span>
+            <span className="text-sm text-gray-800 font-medium">Bus #{busNumber || "—"}</span>
             <button
               onClick={handleDemoToggle}
-              className="px-3 py-1 text-xs rounded-md hover:bg-gray-100 transition-colors"
-              title="Toggle Demo Mode"
+              className="px-3 py-1 text-sm font-medium rounded-md bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors"
             >
               {isDemoMode() ? "Live" : "Demo"}
             </button>
@@ -119,17 +116,17 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
       </header>
 
       <main className="max-w-7xl mx-auto p-4">
-        <div className={`bg-white rounded-2xl shadow-lg p-6 mb-6 ${state.isOnTrip ? "border-green-500" : "border-gray-200"}`}>
+        <div className={`bg-white rounded-2xl shadow-lg p-6 mb-6 border-l-4 ${state.isOnTrip ? "border-green-500" : "border-gray-300"}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Trip Status</p>
-              <p className={`text-xl font-bold ${state.isOnTrip ? "text-green-600" : "text-gray-500"}`}>
+              <p className="text-sm text-gray-600 font-medium">Trip Status</p>
+              <p className={`text-xl font-bold ${state.isOnTrip ? "text-green-700" : "text-gray-700"}`}>
                 {state.isOnTrip ? "🟢 ON ROUTE" : "OFFLINE"}
               </p>
             </div>
             <button
               onClick={state.isOnTrip ? handleEndTrip : handleStartTrip}
-              className={`px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors ${state.isOnTrip ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}`}
+              className={`px-4 py-2 rounded-md font-bold transition-colors ${state.isOnTrip ? "bg-red-100 text-red-700 hover:bg-red-200" : "bg-green-100 text-green-700 hover:bg-green-200"}`}
             >
               {state.isOnTrip ? "END TRIP" : "START TRIP"}
             </button>
@@ -137,45 +134,47 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
           
           {state.isOnTrip && (
             <div className="mt-3 pt-3 border-t border-gray-200">
-              <p className="text-sm text-gray-500">Current Location</p>
+              <p className="text-sm text-gray-600 font-medium">Current Location</p>
               {state.currentPosition ? (
-                <p className="font-medium">{state.currentPosition.latitude.toFixed(4)}, {state.currentPosition.longitude.toFixed(4)}</p>
+                <p className="font-bold text-gray-900">{state.currentPosition.latitude.toFixed(4)}, {state.currentPosition.longitude.toFixed(4)}</p>
               ) : (
-                <p className="text-gray-400">GPS unavailable — Demo Mode available</p>
+                <p className="text-gray-600">GPS unavailable — Demo Mode available</p>
               )}
-              <p className="text-xs text-gray-400 mt-1">Speed: {state.isOnTrip ? "32 km/h" : "—"} km/h</p>
+              <p className="text-xs text-gray-600 mt-1">Speed: {state.isOnTrip ? "32" : "—"} km/h</p>
             </div>
           )}
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h3 className="font-medium mb-4">Route: {route.map(r => r.name).join(" → ")}</h3>
+          <h3 className="font-bold text-gray-900 mb-4">Route: {route.length > 0 ? route.map(r => r.name).join(" → ") : "No route"}</h3>
           
           <div className="space-y-2 text-sm">
             {route.map((stop, index) => (
-              <div key={stop.stopId} className={`flex items-center gap-3 ${index >= state.currentStopIndex && index <= state.nextStopIndex ? "text-primary" : "text-gray-500"}`}>
-                <span className={`w-2 h-2 rounded-full ${index === state.currentStopIndex ? "bg-green-500" : index === state.nextStopIndex ? "bg-yellow-500" : "bg-gray-300"}`}></span>
+              <div key={stop.stopId} className={`flex items-center gap-3 ${index >= state.currentStopIndex && index <= state.nextStopIndex ? "text-primary font-bold" : "text-gray-700"}`}>
+                <span className={`w-2 h-2 rounded-full ${index === state.currentStopIndex ? "bg-green-500" : index === state.nextStopIndex ? "bg-yellow-500" : "bg-gray-400"}`}></span>
                 <span>{stop.name}</span>
               </div>
             ))}
+            {route.length === 0 && (
+              <p className="text-gray-600">No route data available</p>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div>
-            <p className="text-xs text-gray-500">Speed</p>
-            <p className="text-2xl font-bold">{state.isOnTrip ? "32" : "—"} km/h</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-xs text-gray-600 font-medium">Speed</p>
+            <p className="text-2xl font-bold text-gray-900">{state.isOnTrip ? "32" : "—"} km/h</p>
           </div>
-          <div>
-            <p className="text-xs text-gray-500">ETA to Next</p>
-            <p className="text-2xl font-bold">5 min</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-xs text-gray-600 font-medium">ETA to Next</p>
+            <p className="text-2xl font-bold text-gray-900">5 min</p>
           </div>
-          <div>
-            <p className="text-xs text-gray-500">Stop</p>
-            <p className="text-2xl font-bold">{route[state.nextStopIndex]?.name || "—"}</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-xs text-gray-600 font-medium">Next Stop</p>
+            <p className="text-2xl font-bold text-gray-900">{route[state.nextStopIndex]?.name || "—"}</p>
           </div>
         </div>
-
       </main>
     </div>
   );
