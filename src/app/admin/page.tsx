@@ -5,6 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, query, orderBy } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { calculateETA } from "@/lib/eta";
+import { isDemoMode } from "@/lib/geolocation";
 import { getFirebaseAuth } from "@/lib/firebase";
 import * as Recharts from "recharts";
 
@@ -33,6 +34,7 @@ export default function AdminDashboard({
   const router = useRouter();
 
   useEffect(() => {
+    if (isDemoMode()) return;
     const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
       if (!user) router.push("/login");
     });

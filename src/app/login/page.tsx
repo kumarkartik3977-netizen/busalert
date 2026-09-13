@@ -1,18 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { isDemoMode, setDemoMode } from "@/lib/geolocation";
-import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase";
-import { setDoc } from "firebase/firestore";
-
-export interface LoginFormData {
-  email: string;
-  password: string;
-  role: "student" | "driver" | "admin";
-}
+import { getFirebaseAuth } from "@/lib/firebase";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -22,14 +14,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Demo account credentials
-  const demoAccounts: Record<string, { email: string; password: string; role: string }> = {
-    student: { email: "student@college.edu", password: "password123", role: "student" },
-    driver: { email: "driver@college.edu", password: "password123", role: "driver" },
-    admin: { email: "admin@college.edu", password: "password123", role: "admin" },
-  };
-
   useEffect(() => {
+    if (isDemoMode()) {
+      router.push("/student");
+      return;
+    }
     const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
       if (user) {
         router.push("/student");
@@ -44,25 +33,26 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const demo = demoAccounts[role];
-      if (demo) {
-        setDemoMode(true);
-        
-        const userRef = doc(getFirebaseDb(), "users", `demo_${role}`);
-        await setDoc(userRef, {
-          uid: `demo_${role}`,
-          email: demo.email,
-          displayName: role === "student" ? "John Doe" : role === "driver" ? "Driver Singh" : "Admin",
-          role: role,
-        }, { merge: true });
-
-        router.push(`/${role}`);
-        return;
-      }
-
-      router.push("/student");
+      await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+      localStorage.setItem("busalert_user_role", role);
+      router.push(`/${role}`);
     } catch (err: any) {
       setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async (demoRole: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      setDemoMode(true);
+      localStorage.setItem("busalert_user_role", demoRole);
+      router.push(`/${demoRole}`);
+    } catch (err: any) {
+      setError(err.message || "Demo login failed");
     } finally {
       setLoading(false);
     }
@@ -115,23 +105,26 @@ export default function LoginPage() {
         </form>
         
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">or</p>
+          <p className="text-sm text-gray-600">or try demo</p>
           <div className="grid grid-cols-3 gap-2 mt-3">
             <button
-              onClick={() => setRole("student")}
-              className={`py-2 px-3 rounded-md font-medium transition-colors ${role === "student" ? "bg-primary text-white" : "bg-gray-200 text-gray-800 hover:bg-gray-300"}`}
+              onClick={() => handleDemoLogin("student")}
+              disabled={loading}
+              className="py-2 px-3 rounded-md font-medium transition-colors bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:opacity-50"
             >
               Student
             </button>
             <button
-              onClick={() => setRole("driver")}
-              className={`py-2 px-3 rounded-md font-medium transition-colors ${role === "driver" ? "bg-primary text-white" : "bg-gray-200 text-gray-800 hover:bg-gray-300"}`}
+              onClick={() => handleDemoLogin("driver")}
+              disabled={loading}
+              className="py-2 px-3 rounded-md font-medium transition-colors bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:opacity-50"
             >
               Driver
             </button>
             <button
-              onClick={() => setRole("admin")}
-              className={`py-2 px-3 rounded-md font-medium transition-colors ${role === "admin" ? "bg-primary text-white" : "bg-gray-200 text-gray-800 hover:bg-gray-300"}`}
+              onClick={() => handleDemoLogin("admin")}
+              disabled={loading}
+              className="py-2 px-3 rounded-md font-medium transition-colors bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:opacity-50"
             >
               Admin
             </button>

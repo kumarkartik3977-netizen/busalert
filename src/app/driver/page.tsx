@@ -35,6 +35,7 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
   const router = useRouter();
 
   useEffect(() => {
+    if (isDemoMode()) return;
     const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
       if (!user) router.push("/login");
     });
