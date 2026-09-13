@@ -12,10 +12,32 @@ import ETACard from "@/components/ETACard/ETACard";
 import NotificationBanner from "@/components/NotificationBanner/NotificationBanner";
 import StatusBadge from "@/components/StatusBadge/StatusBadge";
 import StopList from "@/components/StopList/StopList";
+import StudentRouteForm from "@/components/StudentRouteForm/StudentRouteForm";
 import dynamic from "next/dynamic";
-import type { Notification } from "@/types";
+import type { Notification, StudentRoute, RouteStop } from "@/types";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap/RouteMap"), { ssr: false });
+
+const STORAGE_KEY = "busalert_student_route";
+
+function loadSavedRoute(): StudentRoute | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveRoute(route: StudentRoute | null) {
+  if (typeof window === "undefined") return;
+  if (route) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(route));
+  } else {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
 
 interface BusInfo {
   busNumber: string;
@@ -24,15 +46,6 @@ interface BusInfo {
   eta: number;
   nextStop: string;
   lastUpdate: number;
-}
-
-interface StudentDashboardProps {
-  bus?: BusInfo;
-  studentStop?: {
-    name: string;
-    latitude: number;
-    longitude: number;
-  };
 }
 
 function getDefaultBus(): BusInfo {
@@ -48,22 +61,25 @@ function getDefaultBus(): BusInfo {
   };
 }
 
-function getDefaultStop() {
-  const demoBus = DEMO_BUSES[0];
-  const route = DEMO_ROUTES.find(r => r.routeId === demoBus.routeId);
-  const lastStop = route ? route.stops[route.stops.length - 1] : DEMO_STOPS[DEMO_STOPS.length - 1];
-  return {
-    name: lastStop.name,
-    latitude: lastStop.latitude,
-    longitude: lastStop.longitude,
-  };
+function getFilteredRouteStops(fullRoute: RouteStop[], originId: string, destId: string): RouteStop[] {
+  const originIdx = fullRoute.findIndex((s) => s.stopId === originId);
+  const destIdx = fullRoute.findIndex((s) => s.stopId === destId);
+  if (originIdx === -1 || destIdx === -1) return fullRoute;
+  const start = Math.min(originIdx, destIdx);
+  const end = Math.max(originIdx, destIdx);
+  return fullRoute.slice(start, end + 1);
 }
 
-export default function StudentDashboard({ bus, studentStop }: StudentDashboardProps) {
+export default function StudentDashboard() {
   const [demoToggled, setDemoToggled] = useState(() => isDemoMode());
-  const [selectedBus] = useState<BusInfo>(() => bus?.busNumber ? bus : getDefaultBus());
-  const [selectedStop] = useState(() => studentStop?.name ? studentStop : getDefaultStop());
+  const [selectedBus] = useState<BusInfo>(() => getDefaultBus());
+  const [savedRoute, setSavedRoute] = useState<StudentRoute | null>(null);
+  const [showRouteForm, setShowRouteForm] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setSavedRoute(loadSavedRoute());
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
@@ -74,6 +90,30 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
     return () => unsubscribe();
   }, [router]);
 
+  const allRouteStops: RouteStop[] = useMemo(() => {
+    return getRouteForBus("bus-01")?.stops || DEMO_STOPS;
+  }, []);
+
+  const mapRouteStops: RouteStop[] = useMemo(() => {
+    if (!savedRoute) return allRouteStops;
+    return getFilteredRouteStops(allRouteStops, savedRoute.originStopId, savedRoute.destinationStopId);
+  }, [allRouteStops, savedRoute]);
+
+  const originStop = useMemo(() => {
+    if (!savedRoute) return undefined;
+    return allRouteStops.find((s) => s.stopId === savedRoute.originStopId);
+  }, [allRouteStops, savedRoute]);
+
+  const destStop = useMemo(() => {
+    if (!savedRoute) return undefined;
+    return allRouteStops.find((s) => s.stopId === savedRoute.destinationStopId);
+  }, [allRouteStops, savedRoute]);
+
+  const selectedStop = useMemo(() => {
+    if (destStop) return { name: destStop.name, latitude: destStop.latitude, longitude: destStop.longitude };
+    return { name: allRouteStops[allRouteStops.length - 1]?.name || "", latitude: allRouteStops[allRouteStops.length - 1]?.latitude || 0, longitude: allRouteStops[allRouteStops.length - 1]?.longitude || 0 };
+  }, [destStop, allRouteStops]);
+
   const etaResult = useMemo(
     () => calculateETA(selectedBus.currentLocation, selectedStop, undefined, undefined),
     [selectedBus.currentLocation, selectedStop]
@@ -81,9 +121,26 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
 
   const eta = etaResult.minutes;
 
+  const originIdx = originStop ? mapRouteStops.findIndex((s) => s.stopId === originStop.stopId) : -1;
+  const destIdx = destStop ? mapRouteStops.findIndex((s) => s.stopId === destStop.stopId) : -1;
+
+  const currentStopIdx = useMemo(() => {
+    if (originIdx === -1) return 0;
+    let minDist = Infinity;
+    let idx = originIdx;
+    for (let i = 0; i < mapRouteStops.length; i++) {
+      const d = Math.abs(selectedBus.currentLocation.latitude - mapRouteStops[i].latitude) +
+                Math.abs(selectedBus.currentLocation.longitude - mapRouteStops[i].longitude);
+      if (d < minDist) { minDist = d; idx = i; }
+    }
+    return idx;
+  }, [mapRouteStops, selectedBus.currentLocation, originIdx]);
+
+  const nextStopIdx = Math.min(currentStopIdx + 1, mapRouteStops.length - 1);
+
   const fallbackNotifications: Notification[] = useMemo(() => [
-    { id: "n1", type: "info" as const, title: "Bus departed", message: `Bus #${selectedBus.busNumber} has departed from College Campus`, timestamp: 0, read: false },
-    { id: "n2", type: "success" as const, title: "Civil Lines passed", message: `Bus #${selectedBus.busNumber} has passed Civil Lines`, timestamp: 0, read: false },
+    { id: "n1", type: "info" as const, title: "Bus departed", message: `Bus #${selectedBus.busNumber} has departed`, timestamp: 0, read: false },
+    { id: "n2", type: "success" as const, title: "Stop passed", message: `Bus #${selectedBus.busNumber} has passed a stop`, timestamp: 0, read: false },
   ], [selectedBus.busNumber]);
 
   const notifications: Notification[] = useMemo(() => {
@@ -106,6 +163,17 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
     getFirebaseAuth().signOut();
     router.push("/login");
   }, [router]);
+
+  const handleSaveRoute = useCallback((route: StudentRoute) => {
+    setSavedRoute(route);
+    saveRoute(route);
+    setShowRouteForm(false);
+  }, []);
+
+  const handleClearRoute = useCallback(() => {
+    setSavedRoute(null);
+    saveRoute(null);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -134,6 +202,70 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
 
       <main className="max-w-7xl mx-auto p-4">
         <NotificationBanner busEta={eta} studentWalkingTime={5} />
+
+        {!savedRoute && !showRouteForm && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-5">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🚌</span>
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-900">Set Your Route</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Select your pickup and drop-off stops to see your personalized route and fares.
+                </p>
+                <button
+                  onClick={() => setShowRouteForm(true)}
+                  className="mt-3 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Choose Stops
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showRouteForm && (
+          <div className="mb-6">
+            <StudentRouteForm
+              stops={allRouteStops}
+              savedRoute={savedRoute}
+              onSave={handleSaveRoute}
+              onCancel={() => setShowRouteForm(false)}
+            />
+          </div>
+        )}
+
+        {savedRoute && (
+          <div className="mb-6 bg-white rounded-2xl shadow-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col items-center">
+                  <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+                  <span className="w-0.5 h-4 bg-gray-200" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-green-700">{savedRoute.originName}</p>
+                  <p className="text-xs text-gray-400">to</p>
+                  <p className="text-sm font-medium text-red-700">{savedRoute.destinationName}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowRouteForm(true)}
+                  className="text-xs text-primary font-medium hover:underline"
+                >
+                  Change
+                </button>
+                <button
+                  onClick={handleClearRoute}
+                  className="text-xs text-gray-400 hover:text-red-500"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <div className="flex items-center justify-between">
@@ -174,18 +306,18 @@ export default function StudentDashboard({ bus, studentStop }: StudentDashboardP
 
         <div className="mt-8">
           <StopList
-            stops={DEMO_STOPS}
-            currentStopIndex={1}
-            nextStopIndex={2}
+            stops={mapRouteStops}
+            currentStopIndex={currentStopIdx}
+            nextStopIndex={nextStopIdx}
           />
         </div>
 
         <div className="mt-8">
           <RouteMap
-            route={getRouteForBus("bus-01")?.stops || DEMO_STOPS}
+            route={mapRouteStops}
             currentPosition={selectedBus.currentLocation.latitude !== 0 ? selectedBus.currentLocation : null}
-            currentStopIndex={1}
-            nextStopIndex={2}
+            currentStopIndex={currentStopIdx}
+            nextStopIndex={nextStopIdx}
           />
         </div>
 

@@ -13,6 +13,8 @@ interface BusStop {
   scheduledDeparture: string;
   distanceFromStart: number;
   platformNo?: string;
+  annualFee?: number;
+  semesterFee?: number;
 }
 
 interface AddStopFormProps {

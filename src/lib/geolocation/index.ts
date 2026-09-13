@@ -48,6 +48,56 @@ export function setDemoMode(enabled: boolean): void {
   }
 }
 
+export type PositionCallback = (position: {
+  latitude: number;
+  longitude: number;
+  speed: number;
+  timestamp: number;
+}) => void;
+
+export type PositionErrorCallback = (error: string) => void;
+
+let watchId: number | null = null;
+
+export function startWatchingPosition(
+  onPosition: PositionCallback,
+  onError?: PositionErrorCallback
+): void {
+  if (typeof window === "undefined") return;
+  if (!("geolocation" in navigator)) {
+    onError?.("Geolocation not supported");
+    return;
+  }
+
+  stopWatchingPosition();
+
+  watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      onPosition({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        speed: pos.coords.speed ?? 0,
+        timestamp: pos.timestamp,
+      });
+    },
+    (err) => {
+      onError?.(err.message || "GPS error");
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 5000,
+    }
+  );
+}
+
+export function stopWatchingPosition(): void {
+  if (watchId !== null && typeof navigator !== "undefined") {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+}
+
 export function simulateBusMovement(
   routeStops: Array<{ latitude: number; longitude: number }>,
   progress: number = 0

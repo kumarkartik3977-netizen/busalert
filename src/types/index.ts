@@ -5,6 +5,15 @@ export interface User {
   role: "student" | "driver" | "admin";
 }
 
+export interface Driver {
+  driverId: string;
+  name: string;
+  age: number;
+  mobile: string;
+  licenseNo?: string;
+  busId?: string;
+}
+
 export interface Bus {
   busId: string;
   busNumber: string;
@@ -17,6 +26,8 @@ export interface Bus {
   currentLocation: { latitude: number; longitude: number };
   speed: number;
   lastUpdate: number;
+  morningTime: string;
+  eveningTime: string;
 }
 
 export interface BusStop {
@@ -30,6 +41,8 @@ export interface BusStop {
   scheduledDeparture: string;
   distanceFromStart: number;
   platformNo?: string;
+  annualFee?: number;
+  semesterFee?: number;
 }
 
 export interface BusLiveStatus {
@@ -69,6 +82,8 @@ export interface RouteStop {
   latitude: number;
   longitude: number;
   order: number;
+  annualFee?: number;
+  semesterFee?: number;
 }
 
 export interface Route {
@@ -103,6 +118,19 @@ export interface StudentPrefs {
   busId: string;
   stopId: string;
   walkingTime: number;
+  originStopId?: string;
+  destinationStopId?: string;
+}
+
+export interface StudentRoute {
+  originStopId: string;
+  destinationStopId: string;
+  originName: string;
+  destinationName: string;
+  originLat: number;
+  originLng: number;
+  destinationLat: number;
+  destinationLng: number;
 }
 
 export interface ETAResult {

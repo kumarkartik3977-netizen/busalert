@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { isDemoMode, setDemoMode, simulateBusMovement, getCurrentLocation } from "@/lib/geolocation";
+import {
+  isDemoMode,
+  setDemoMode,
+  simulateBusMovement,
+  getCurrentLocation,
+  startWatchingPosition,
+  stopWatchingPosition,
+} from "@/lib/geolocation";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { haversineDistance } from "@/lib/eta";
 import { DEMO_ROUTES } from "@/lib/demoData";
@@ -28,6 +35,25 @@ export interface DriverDashboardProps {
   onTripEnd?: () => void;
 }
 
+function findNearestStopIndex(
+  position: { latitude: number; longitude: number },
+  route: RouteStop[]
+): { currentStopIndex: number; nextStopIndex: number } {
+  let minDist = Infinity;
+  let nearestIdx = 0;
+  for (let i = 0; i < route.length; i++) {
+    const d = haversineDistance(position, route[i]);
+    if (d < minDist) {
+      minDist = d;
+      nearestIdx = i;
+    }
+  }
+  return {
+    currentStopIndex: nearestIdx,
+    nextStopIndex: Math.min(nearestIdx + 1, route.length - 1),
+  };
+}
+
 export default function DriverDashboard({ busNumber = "", route = [], onTripStart, onTripEnd }: DriverDashboardProps) {
   const [state, setState] = useState({
     isOnTrip: false,
@@ -39,6 +65,8 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
     speed: 0,
     etaMinutes: 0,
   });
+  const [gpsStatus, setGpsStatus] = useState<"idle" | "active" | "error">("idle");
+  const [gpsError, setGpsError] = useState<string>("");
   const [demoToggled, setDemoToggled] = useState(() => isDemoMode());
   const [activeRoute] = useState<RouteStop[]>(() => {
     if (isDemoMode() && route.length === 0) {
@@ -53,6 +81,7 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
     return busNumber;
   });
   const router = useRouter();
+  const demoIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (isDemoMode()) return;
@@ -62,11 +91,32 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
     return () => unsubscribe();
   }, [router]);
 
-  useEffect(() => {
-    if (!state.isOnTrip) return;
+  const handleGpsPosition = useCallback(
+    (pos: { latitude: number; longitude: number; speed: number; timestamp: number }) => {
+      const speedKmph = pos.speed > 0 ? Math.round(pos.speed * 3.6) : 0;
+      const { currentStopIndex, nextStopIndex } = findNearestStopIndex(pos, activeRoute);
 
-    const demoInterval = setInterval(() => {
-      setState(prev => {
+      const nextStop = activeRoute[nextStopIndex];
+      const distToNext = haversineDistance(pos, nextStop);
+      const etaMinutes = speedKmph > 0 ? Math.round((distToNext / speedKmph) * 60) : 0;
+
+      setState((prev) => ({
+        ...prev,
+        currentPosition: { latitude: pos.latitude, longitude: pos.longitude },
+        currentStopIndex,
+        nextStopIndex,
+        speed: speedKmph || prev.speed || 0,
+        etaMinutes,
+      }));
+    },
+    [activeRoute]
+  );
+
+  const startDemoSimulation = useCallback(() => {
+    if (demoIntervalRef.current) clearInterval(demoIntervalRef.current);
+
+    demoIntervalRef.current = setInterval(() => {
+      setState((prev) => {
         const newProgress = prev.demoProgress + 0.05;
         const result = simulateBusMovement(activeRoute, newProgress);
 
@@ -77,7 +127,7 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
         if (result.currentStopIndex >= 0 && result.nextStopIndex >= 0) {
           const currentPos = activeRoute[result.currentStopIndex];
           const distanceKm = haversineDistance(currentPos, nextStop);
-          speed = Math.round(distanceKm / 0.05 * 60);
+          speed = Math.round((distanceKm / 0.05) * 60);
           if (speed < 5) speed = 5;
           if (speed > 60) speed = 60;
           etaMinutes = Math.round((distanceKm / speed) * 60);
@@ -86,32 +136,61 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
 
         return {
           ...prev,
-          currentPosition: result.latitude !== undefined ? { latitude: result.latitude, longitude: result.longitude } : prev.currentPosition,
+          currentPosition: { latitude: result.latitude, longitude: result.longitude },
           currentStopIndex: result.currentStopIndex,
           nextStopIndex: result.nextStopIndex,
-          tripStartTime: prev.tripStartTime,
           demoProgress: newProgress,
           speed,
           etaMinutes,
         };
       });
     }, 3000);
+  }, [activeRoute]);
 
-    return () => clearInterval(demoInterval);
-  }, [state.isOnTrip, activeRoute]);
+  const stopDemoSimulation = useCallback(() => {
+    if (demoIntervalRef.current) {
+      clearInterval(demoIntervalRef.current);
+      demoIntervalRef.current = null;
+    }
+  }, []);
 
   const handleStartTrip = async () => {
-    const location = await getCurrentLocation();
-    setState({
-      ...state,
-      isOnTrip: true,
-      currentPosition: { latitude: location.latitude, longitude: location.longitude },
-      tripStartTime: Date.now(),
-    });
+    const demo = isDemoMode();
+
+    if (demo) {
+      const location = await getCurrentLocation();
+      setState((prev) => ({
+        ...prev,
+        isOnTrip: true,
+        currentPosition: { latitude: location.latitude, longitude: location.longitude },
+        tripStartTime: Date.now(),
+      }));
+      startDemoSimulation();
+    } else {
+      setState((prev) => ({
+        ...prev,
+        isOnTrip: true,
+        tripStartTime: Date.now(),
+      }));
+
+      startWatchingPosition(
+        (pos) => {
+          setGpsStatus("active");
+          setGpsError("");
+          handleGpsPosition(pos);
+        },
+        (err) => {
+          setGpsStatus("error");
+          setGpsError(err);
+        }
+      );
+    }
     onTripStart?.();
   };
 
   const handleEndTrip = () => {
+    stopWatchingPosition();
+    stopDemoSimulation();
     setState({
       isOnTrip: false,
       currentPosition: null,
@@ -122,6 +201,8 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
       speed: 0,
       etaMinutes: 0,
     });
+    setGpsStatus("idle");
+    setGpsError("");
     onTripEnd?.();
   };
 
@@ -132,11 +213,20 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
   };
 
   const handleLogout = () => {
+    stopWatchingPosition();
+    stopDemoSimulation();
     setDemoMode(false);
     localStorage.removeItem("busalert_user_role");
     getFirebaseAuth().signOut();
     router.push("/login");
   };
+
+  useEffect(() => {
+    return () => {
+      stopWatchingPosition();
+      stopDemoSimulation();
+    };
+  }, [stopDemoSimulation]);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -180,11 +270,25 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
             <div className="mt-3 pt-3 border-t border-gray-200">
               <p className="text-sm text-gray-600 font-medium">Current Location</p>
               {state.currentPosition ? (
-                <p className="font-bold text-gray-900">{state.currentPosition.latitude.toFixed(4)}, {state.currentPosition.longitude.toFixed(4)}</p>
+                <p className="font-bold text-gray-900">{state.currentPosition.latitude.toFixed(6)}, {state.currentPosition.longitude.toFixed(6)}</p>
               ) : (
-                <p className="text-gray-600">GPS unavailable — Demo Mode available</p>
+                <p className="text-gray-600">Acquiring GPS signal...</p>
               )}
-              <p className="text-xs text-gray-600 mt-1">Speed: {state.isOnTrip ? state.speed : "—"} km/h</p>
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-xs text-gray-600">Speed: {state.isOnTrip ? state.speed : "—"} km/h</p>
+                {!demoToggled && (
+                  <span className={`inline-flex items-center gap-1 text-xs ${gpsStatus === "active" ? "text-green-600" : gpsStatus === "error" ? "text-red-600" : "text-gray-400"}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${gpsStatus === "active" ? "bg-green-500" : gpsStatus === "error" ? "bg-red-500" : "bg-gray-300"}`} />
+                    {gpsStatus === "active" ? "GPS Live" : gpsStatus === "error" ? gpsError : "GPS Off"}
+                  </span>
+                )}
+                {demoToggled && (
+                  <span className="inline-flex items-center gap-1 text-xs text-yellow-600">
+                    <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
+                    Demo Mode
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>

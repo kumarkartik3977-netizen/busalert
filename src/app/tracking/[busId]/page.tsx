@@ -9,6 +9,9 @@ import { GpsSimulator } from "@/lib/simulation/gpsSimulator";
 import { calculateStopETAs, detectGeofenceArrival } from "@/lib/eta/engine";
 import { getStopsForBus, DEMO_BUSES, getRouteForBus } from "@/lib/demoData";
 import type { BusStop, StopETA, BusLiveStatus } from "@/types";
+import dynamic from "next/dynamic";
+
+const RouteMap = dynamic(() => import("@/components/RouteMap/RouteMap"), { ssr: false });
 
 function formatTime(date: Date | null): string {
   if (!date) return "--:--";
@@ -210,6 +213,18 @@ export default function TrackingPage() {
             currentSpeed={liveStatus.currentSpeedKmph}
             lastUpdatedAt={liveStatus.lastUpdatedAt}
             onRefresh={handleRefresh}
+          />
+        )}
+
+        {route && liveStatus && (
+          <RouteMap
+            route={route.stops}
+            currentPosition={{
+              latitude: liveStatus.currentLatitude,
+              longitude: liveStatus.currentLongitude,
+            }}
+            currentStopIndex={liveStatus.lastUpdatedStop ? stops.findIndex((s) => s.stopName === liveStatus.lastUpdatedStop) : 0}
+            nextStopIndex={liveStatus.nextStop ? stops.findIndex((s) => s.stopName === liveStatus.nextStop) : 1}
           />
         )}
 
