@@ -2,17 +2,16 @@
 
 interface StatusBadgeProps {
   status: "ON_ROUTE" | "DELAYED" | "OFFLINE" | "ARRIVING";
-  busNumber?: string;
 }
 
-const statusConfig: Record<string, { label: string; colorClass: string; icon: string }> = {
-  ON_ROUTE: { label: "On Route", colorClass: "text-green-800", icon: "🟢" },
-  DELAYED: { label: "Delayed", colorClass: "text-orange-800", icon: "🟡" },
-  OFFLINE: { label: "Offline", colorClass: "text-gray-700", icon: "⚫" },
-  ARRIVING: { label: "Arriving", colorClass: "text-blue-800", icon: "🚌" },
+const statusConfig: Record<string, { label: string; colorClass: string }> = {
+  ON_ROUTE: { label: "On Route", colorClass: "text-green-800" },
+  DELAYED: { label: "Delayed", colorClass: "text-orange-800" },
+  OFFLINE: { label: "Offline", colorClass: "text-gray-700" },
+  ARRIVING: { label: "Arriving", colorClass: "text-blue-800" },
 };
 
-export default function StatusBadge({ status, busNumber }: StatusBadgeProps) {
+export default function StatusBadge({ status }: StatusBadgeProps) {
   const config = statusConfig[status] || statusConfig.OFFLINE;
 
   return (

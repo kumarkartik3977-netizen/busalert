@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 interface BusCardProps {
   busNumber: string;
   eta: number;
@@ -11,7 +9,6 @@ interface BusCardProps {
 }
 
 export default function BusCard({ busNumber, eta, status, nextStop, onSelect }: BusCardProps) {
-  const [selected, setSelected] = useState(false);
 
   const statusClass = {
     ON_ROUTE: "bg-green-100 text-green-800",
@@ -21,13 +18,13 @@ export default function BusCard({ busNumber, eta, status, nextStop, onSelect }: 
 
   return (
     <div 
-      className={`group bg-white rounded-2xl shadow-lg p-6 cursor-pointer transition-all hover:shadow-xl ${selected ? "bg-primary-100" : ""}`}
+      className="group bg-white rounded-2xl shadow-lg p-6 cursor-pointer transition-all hover:shadow-xl"
       onClick={onSelect}
     >
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-gray-500">Bus #{busNumber}</p>
-          <p className="text-xl font-bold {statusClass}">{status === "ON_ROUTE" ? "🟢 ON ROUTE" : status === "DELAYED" ? "🟡 DELAYED" : "⚫ OFFLINE"}</p>
+          <p className={`text-xl font-bold ${statusClass}`}>{status === "ON_ROUTE" ? "🟢 ON ROUTE" : status === "DELAYED" ? "🟡 DELAYED" : "⚫ OFFLINE"}</p>
         </div>
         <span />
       </div>
@@ -36,10 +33,6 @@ export default function BusCard({ busNumber, eta, status, nextStop, onSelect }: 
         <p className="text-lg font-medium">{nextStop}</p>
         <p className="text-sm text-gray-500">ETA: {eta} min</p>
       </div>
-      
-      {selected && (
-        <p className="mt-2 text-sm text-primary">Selected for your trip</p>
-      )}
     </div>
   );
 }

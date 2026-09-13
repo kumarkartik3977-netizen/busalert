@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { isDemoMode } from "@/lib/geolocation";
+import { isDemoMode, setDemoMode } from "@/lib/geolocation";
 import { getFirebaseAuth } from "@/lib/firebase";
+import { DEMO_ANALYTICS, DEMO_ROUTES, DEMO_BUSES } from "@/lib/demoData";
+import BusCard from "@/components/BusCard/BusCard";
 import * as Recharts from "recharts";
 
 interface BusAnalytics {
@@ -20,6 +22,7 @@ interface BusAnalytics {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const [demoToggled, setDemoToggled] = useState(() => isDemoMode());
 
   useEffect(() => {
     if (isDemoMode()) return;
@@ -29,27 +32,49 @@ export default function AdminDashboard() {
     return () => unsubscribe();
   }, [router]);
 
-  const buses: BusAnalytics[] = [
-    { busId: "01", busNumber: "01", onTime: 13, delayed: 2, offline: 0, totalTrips: 15, averageDelay: 3, onTimePercentage: 87 },
-    { busId: "05", busNumber: "05", onTime: 11, delayed: 3, offline: 0, totalTrips: 12, averageDelay: 5, onTimePercentage: 92 },
-    { busId: "07", busNumber: "07", onTime: 8, delayed: 4, offline: 0, totalTrips: 10, averageDelay: 8, onTimePercentage: 80 },
-    { busId: "12", busNumber: "12", onTime: 9, delayed: 5, offline: 0, totalTrips: 14, averageDelay: 6, onTimePercentage: 64 },
-  ];
+  const buses: BusAnalytics[] = DEMO_ANALYTICS.map((a) => ({
+    ...a,
+    offline: 0,
+  }));
 
-  const totalTrips = buses.reduce((sum, b) => sum + b.totalTrips, 0);
-  const totalOnTime = buses.reduce((sum, b) => sum + b.onTime, 0);
-  const overallOnTimePercentage = Math.round((totalOnTime / totalTrips) * 100);
   const activeBuses = buses.length;
   const onTimeBuses = buses.filter(b => b.onTimePercentage > 80).length;
   const delayedBuses = buses.filter(b => b.onTimePercentage > 60 && b.onTimePercentage <= 80).length;
   const offlineBuses = buses.filter(b => b.onTimePercentage <= 60).length;
+
+  const handleDemoToggle = () => {
+    const newDemo = !demoToggled;
+    setDemoToggled(newDemo);
+    setDemoMode(newDemo);
+  };
+
+  const handleLogout = () => {
+    setDemoMode(false);
+    localStorage.removeItem("busalert_user_role");
+    getFirebaseAuth().signOut();
+    router.push("/login");
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="border-b border-gray-300 bg-white">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">ADMIN DASHBOARD</h1>
-          <span className="text-sm text-gray-800 font-medium">Admin Panel</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-800 font-medium">Admin Panel</span>
+            <button
+              onClick={handleDemoToggle}
+              className="px-3 py-1 text-sm font-medium rounded-md bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors"
+            >
+              {demoToggled ? "Live" : "Demo"}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1 text-sm font-medium rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -73,13 +98,44 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        <div className="mb-6 flex gap-3">
+          <button
+            onClick={() => router.push("/admin/stops")}
+            className="px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors"
+          >
+            Manage Bus Stops
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {buses.map((bus) => {
+            const demoBus = DEMO_BUSES.find(b => b.busNumber === bus.busNumber);
+            const status = bus.onTimePercentage > 80 ? "ON_ROUTE" as const : bus.onTimePercentage > 60 ? "DELAYED" as const : "OFFLINE" as const;
+            const route = DEMO_ROUTES.find(r => r.routeId === demoBus?.routeId);
+            const nextStopName = route?.stops[1]?.name || "—";
+
+            return (
+              <BusCard
+                key={bus.busId}
+                busNumber={bus.busNumber}
+                eta={bus.averageDelay}
+                status={status}
+                nextStop={nextStopName}
+                onSelect={() => router.push(`/tracking/${bus.busId}`)}
+              />
+            );
+          })}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <h3 className="font-bold text-gray-900 mb-4">ON-TIME PERFORMANCE</h3>
             <div className="h-48">
-              <Recharts.PieChart data={buses} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+              <Recharts.PieChart margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                 <Recharts.Pie
+                  data={buses}
                   dataKey="onTimePercentage"
+                  nameKey="busNumber"
                   name="Bus"
                 >
                   {buses.map((bus, i) => (
@@ -124,31 +180,30 @@ export default function AdminDashboard() {
               <thead>
                 <tr className="text-left border-b border-gray-300">
                   <th className="p-3 text-gray-900 font-bold">Bus</th>
-                  <th className="p-3 text-gray-900 font-bold">Driver</th>
+                  <th className="p-3 text-gray-900 font-bold">Route</th>
                   <th className="p-3 text-gray-900 font-bold">Status</th>
-                  <th className="p-3 text-gray-900 font-bold">Location</th>
-                  <th className="p-3 text-gray-900 font-bold">ETA</th>
-                  <th className="p-3 text-gray-900 font-bold">Delay</th>
+                  <th className="p-3 text-gray-900 font-bold">Trips</th>
+                  <th className="p-3 text-gray-900 font-bold">On Time %</th>
+                  <th className="p-3 text-gray-900 font-bold">Avg Delay</th>
                 </tr>
               </thead>
               <tbody>
                 {buses.map((bus) => {
                   const statusClass = bus.onTimePercentage > 80 ? "text-green-700 bg-green-50" : bus.onTimePercentage > 60 ? "text-orange-700 bg-orange-50" : "text-red-700 bg-red-50";
-                  const delayMinutes = bus.delayed;
-                  const delayText = delayMinutes > 0 ? `${delayMinutes} min` : "0 min";
-                  
+                  const route = DEMO_ROUTES.find(r => r.routeId === DEMO_BUSES.find(b => b.busNumber === bus.busNumber)?.routeId);
+
                   return (
                     <tr key={bus.busNumber} className="border-b border-gray-200">
                       <td className="p-3 font-bold text-gray-900">{bus.busNumber}</td>
-                      <td className="p-3 text-gray-800">Rahul</td>
+                      <td className="p-3 text-gray-800">{route?.name || "—"}</td>
                       <td className="p-3">
                         <span className={`px-2 py-1 rounded text-xs font-bold ${statusClass}`}>
                           {bus.onTimePercentage > 80 ? "🟢 On Time" : bus.onTimePercentage > 60 ? "🟡 Delayed" : "🔴 Off Track"}
                         </span>
                       </td>
-                      <td className="p-3 text-gray-800">Civil Lines</td>
-                      <td className="p-3 text-gray-800">5 min</td>
-                      <td className="p-3 text-gray-800">{delayText}</td>
+                      <td className="p-3 text-gray-800">{bus.totalTrips}</td>
+                      <td className="p-3 text-gray-800">{bus.onTimePercentage}%</td>
+                      <td className="p-3 text-gray-800">{bus.averageDelay} min</td>
                     </tr>
                   );
                 })}

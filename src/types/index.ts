@@ -8,14 +8,59 @@ export interface User {
 export interface Bus {
   busId: string;
   busNumber: string;
+  routeNumber: string;
+  routeName: string;
   driverId: string | null;
   routeId: string;
-  status: "OFFLINE" | "ON_ROUTE" | "DELAYED";
-  currentLocation: {
-    latitude: number;
-    longitude: number;
-  };
+  currentStatus: "On Time" | "Delayed" | "Not Started";
+  status: "OFFLINE" | "ON_ROUTE" | "DELAYED" | "ARRIVING";
+  currentLocation: { latitude: number; longitude: number };
+  speed: number;
   lastUpdate: number;
+}
+
+export interface BusStop {
+  id: string;
+  busId: string;
+  stopName: string;
+  sequence: number;
+  latitude: number;
+  longitude: number;
+  scheduledArrival: string;
+  scheduledDeparture: string;
+  distanceFromStart: number;
+  platformNo?: string;
+}
+
+export interface BusLiveStatus {
+  busId: string;
+  currentLatitude: number;
+  currentLongitude: number;
+  currentSpeedKmph: number;
+  lastUpdatedStop: string;
+  nextStop: string;
+  distanceToNextStop: number;
+  estimatedArrivalAtNextStop: number;
+  delayInMinutes: number;
+  lastUpdatedAt: number;
+  speedReadings: number[];
+}
+
+export interface StopETA {
+  stopId: string;
+  stopName: string;
+  sequence: number;
+  scheduledArrival: string;
+  scheduledDeparture: string;
+  estimatedArrival: Date | null;
+  actualArrival: Date | null;
+  estimatedDeparture: Date | null;
+  actualDeparture: Date | null;
+  delayMinutes: number;
+  distanceFromStart: number;
+  platformNo?: string;
+  status: "passed" | "current" | "upcoming";
+  distanceFromCurrentLocation: number;
 }
 
 export interface RouteStop {
@@ -35,9 +80,14 @@ export interface Route {
 export interface Trip {
   tripId: string;
   busId: string;
+  driverId: string;
+  routeId: string;
   startTime: number;
   endTime: number | null;
   status: "ACTIVE" | "COMPLETED" | "CANCELLED";
+  currentStopIndex: number;
+  nextStopIndex: number;
+  delay: number;
 }
 
 export interface LiveLocation {
@@ -52,12 +102,32 @@ export interface StudentPrefs {
   userId: string;
   busId: string;
   stopId: string;
-  walkingTime: number; // in minutes
+  walkingTime: number;
 }
 
 export interface ETAResult {
   minutes: number;
   message: string;
   shouldLeaveNow: boolean;
-  timeToLeave: number; // minutes
+  timeToLeave: number;
+}
+
+export interface Notification {
+  id: string;
+  type: "info" | "warning" | "success" | "error";
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+}
+
+export interface BusAnalytics {
+  busId: string;
+  busNumber: string;
+  onTime: number;
+  delayed: number;
+  totalTrips: number;
+  averageDelay: number;
+  onTimePercentage: number;
+  averageTripDuration: number;
 }

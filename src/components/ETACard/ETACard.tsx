@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { calculateETA } from "@/lib/eta";
 
 interface ETACardProps {
@@ -10,19 +10,10 @@ interface ETACardProps {
 }
 
 export default function ETACard({ busLocation, destinationStop, studentWalkingTime = 5 }: ETACardProps) {
-  const [etaResult, setETAResult] = useState<{
-    minutes: number;
-    message: string;
-    shouldLeaveNow: boolean;
-    timeToLeave: number;
-  } | null>(null);
-
-  useEffect(() => {
-    const result = calculateETA(busLocation, destinationStop);
-    setETAResult(result);
-  }, [busLocation, destinationStop]);
-
-  if (!etaResult) return null;
+  const etaResult = useMemo(
+    () => calculateETA(busLocation, destinationStop),
+    [busLocation, destinationStop]
+  );
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">

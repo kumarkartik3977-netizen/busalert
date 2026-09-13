@@ -5,6 +5,13 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { isDemoMode, setDemoMode, simulateBusMovement, getCurrentLocation } from "@/lib/geolocation";
 import { getFirebaseAuth } from "@/lib/firebase";
+import { haversineDistance } from "@/lib/eta";
+import { DEMO_ROUTES } from "@/lib/demoData";
+import StatusBadge from "@/components/StatusBadge/StatusBadge";
+import StopList from "@/components/StopList/StopList";
+import dynamic from "next/dynamic";
+
+const RouteMap = dynamic(() => import("@/components/RouteMap/RouteMap"), { ssr: false });
 
 export interface RouteStop {
   stopId: string;
@@ -15,10 +22,10 @@ export interface RouteStop {
 }
 
 export interface DriverDashboardProps {
-  busNumber: string;
-  route: RouteStop[];
-  onTripStart: () => void;
-  onTripEnd: () => void;
+  busNumber?: string;
+  route?: RouteStop[];
+  onTripStart?: () => void;
+  onTripEnd?: () => void;
 }
 
 export default function DriverDashboard({ busNumber = "", route = [], onTripStart, onTripEnd }: DriverDashboardProps) {
@@ -29,6 +36,21 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
     nextStopIndex: 1,
     tripStartTime: null as number | null,
     demoProgress: 0,
+    speed: 0,
+    etaMinutes: 0,
+  });
+  const [demoToggled, setDemoToggled] = useState(() => isDemoMode());
+  const [activeRoute] = useState<RouteStop[]>(() => {
+    if (isDemoMode() && route.length === 0) {
+      return DEMO_ROUTES[0].stops;
+    }
+    return route;
+  });
+  const [activeBusNumber] = useState(() => {
+    if (isDemoMode() && route.length === 0) {
+      return "01";
+    }
+    return busNumber;
   });
   const router = useRouter();
 
@@ -42,23 +64,26 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
 
   useEffect(() => {
     if (!state.isOnTrip) return;
-    
+
     const demoInterval = setInterval(() => {
       setState(prev => {
         const newProgress = prev.demoProgress + 0.05;
-        const result = simulateBusMovement(route, newProgress);
-        
-        const nextStop = route[result.nextStopIndex];
-        let eta = 5;
+        const result = simulateBusMovement(activeRoute, newProgress);
+
+        const nextStop = activeRoute[result.nextStopIndex];
+        let speed = 30;
+        let etaMinutes = 5;
+
         if (result.currentStopIndex >= 0 && result.nextStopIndex >= 0) {
-          const currentPos = route[result.currentStopIndex];
-          const distanceKm = Math.sqrt(
-            (nextStop.latitude - currentPos.latitude) ** 2 + 
-            (nextStop.longitude - currentPos.longitude) ** 2
-          ) * 111;
-          eta = Math.round((distanceKm / 30) * 60);
+          const currentPos = activeRoute[result.currentStopIndex];
+          const distanceKm = haversineDistance(currentPos, nextStop);
+          speed = Math.round(distanceKm / 0.05 * 60);
+          if (speed < 5) speed = 5;
+          if (speed > 60) speed = 60;
+          etaMinutes = Math.round((distanceKm / speed) * 60);
+          if (etaMinutes < 1) etaMinutes = 1;
         }
-        
+
         return {
           ...prev,
           currentPosition: result.latitude !== undefined ? { latitude: result.latitude, longitude: result.longitude } : prev.currentPosition,
@@ -66,12 +91,14 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
           nextStopIndex: result.nextStopIndex,
           tripStartTime: prev.tripStartTime,
           demoProgress: newProgress,
+          speed,
+          etaMinutes,
         };
       });
     }, 3000);
-    
+
     return () => clearInterval(demoInterval);
-  }, [state.isOnTrip, route]);
+  }, [state.isOnTrip, activeRoute]);
 
   const handleStartTrip = async () => {
     const location = await getCurrentLocation();
@@ -81,6 +108,7 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
       currentPosition: { latitude: location.latitude, longitude: location.longitude },
       tripStartTime: Date.now(),
     });
+    onTripStart?.();
   };
 
   const handleEndTrip = () => {
@@ -91,11 +119,23 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
       nextStopIndex: 1,
       tripStartTime: null,
       demoProgress: 0,
+      speed: 0,
+      etaMinutes: 0,
     });
+    onTripEnd?.();
   };
 
   const handleDemoToggle = () => {
-    setDemoMode(!isDemoMode());
+    const newDemo = !demoToggled;
+    setDemoToggled(newDemo);
+    setDemoMode(newDemo);
+  };
+
+  const handleLogout = () => {
+    setDemoMode(false);
+    localStorage.removeItem("busalert_user_role");
+    getFirebaseAuth().signOut();
+    router.push("/login");
   };
 
   return (
@@ -104,12 +144,18 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">DRIVER DASHBOARD</h1>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-800 font-medium">Bus #{busNumber || "—"}</span>
+            <span className="text-sm text-gray-800 font-medium">Bus #{activeBusNumber || "—"}</span>
             <button
               onClick={handleDemoToggle}
               className="px-3 py-1 text-sm font-medium rounded-md bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors"
             >
-              {isDemoMode() ? "Live" : "Demo"}
+              {demoToggled ? "Live" : "Demo"}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1 text-sm font-medium rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+            >
+              Logout
             </button>
           </div>
         </div>
@@ -120,9 +166,7 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-medium">Trip Status</p>
-              <p className={`text-xl font-bold ${state.isOnTrip ? "text-green-700" : "text-gray-700"}`}>
-                {state.isOnTrip ? "🟢 ON ROUTE" : "OFFLINE"}
-              </p>
+              <StatusBadge status={state.isOnTrip ? "ON_ROUTE" : "OFFLINE"} />
             </div>
             <button
               onClick={state.isOnTrip ? handleEndTrip : handleStartTrip}
@@ -131,7 +175,7 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
               {state.isOnTrip ? "END TRIP" : "START TRIP"}
             </button>
           </div>
-          
+
           {state.isOnTrip && (
             <div className="mt-3 pt-3 border-t border-gray-200">
               <p className="text-sm text-gray-600 font-medium">Current Location</p>
@@ -140,41 +184,40 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
               ) : (
                 <p className="text-gray-600">GPS unavailable — Demo Mode available</p>
               )}
-              <p className="text-xs text-gray-600 mt-1">Speed: {state.isOnTrip ? "32" : "—"} km/h</p>
+              <p className="text-xs text-gray-600 mt-1">Speed: {state.isOnTrip ? state.speed : "—"} km/h</p>
             </div>
           )}
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h3 className="font-bold text-gray-900 mb-4">Route: {route.length > 0 ? route.map(r => r.name).join(" → ") : "No route"}</h3>
-          
-          <div className="space-y-2 text-sm">
-            {route.map((stop, index) => (
-              <div key={stop.stopId} className={`flex items-center gap-3 ${index >= state.currentStopIndex && index <= state.nextStopIndex ? "text-primary font-bold" : "text-gray-700"}`}>
-                <span className={`w-2 h-2 rounded-full ${index === state.currentStopIndex ? "bg-green-500" : index === state.nextStopIndex ? "bg-yellow-500" : "bg-gray-400"}`}></span>
-                <span>{stop.name}</span>
-              </div>
-            ))}
-            {route.length === 0 && (
-              <p className="text-gray-600">No route data available</p>
-            )}
-          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <p className="text-xs text-gray-600 font-medium">Speed</p>
-            <p className="text-2xl font-bold text-gray-900">{state.isOnTrip ? "32" : "—"} km/h</p>
+            <p className="text-2xl font-bold text-gray-900">{state.isOnTrip ? state.speed : "—"} km/h</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <p className="text-xs text-gray-600 font-medium">ETA to Next</p>
-            <p className="text-2xl font-bold text-gray-900">5 min</p>
+            <p className="text-2xl font-bold text-gray-900">{state.isOnTrip ? state.etaMinutes : "—"} min</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <p className="text-xs text-gray-600 font-medium">Next Stop</p>
-            <p className="text-2xl font-bold text-gray-900">{route[state.nextStopIndex]?.name || "—"}</p>
+            <p className="text-2xl font-bold text-gray-900">{activeRoute[state.nextStopIndex]?.name || "—"}</p>
           </div>
         </div>
+
+        <div className="mb-6">
+          <RouteMap
+            route={activeRoute}
+            currentPosition={state.currentPosition}
+            currentStopIndex={state.currentStopIndex}
+            nextStopIndex={state.nextStopIndex}
+          />
+        </div>
+
+        <StopList
+          stops={activeRoute}
+          currentStopIndex={state.currentStopIndex}
+          nextStopIndex={state.nextStopIndex}
+        />
       </main>
     </div>
   );
