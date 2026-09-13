@@ -32,7 +32,7 @@ export default function LoginPage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
       if (user) {
-        router.push("/dashboard/student");
+        router.push("/student");
       }
     });
     return () => unsubscribe();
@@ -56,11 +56,11 @@ export default function LoginPage() {
           role: role,
         }, { merge: true });
 
-        router.push(`/dashboard/${role}`);
+        router.push(`/${role}`);
         return;
       }
 
-      router.push("/dashboard/student");
+      router.push("/student");
     } catch (err: any) {
       setError(err.message || "Login failed");
     } finally {
