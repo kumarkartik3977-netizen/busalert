@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0284c7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <!-- Bus body -->
+  <rect x="90" y="140" width="332" height="200" rx="24" fill="white"/>
+  <!-- Windows -->
+  <rect x="110" y="160" width="80" height="70" rx="10" fill="#0ea5e9" opacity="0.9"/>
+  <rect x="216" y="160" width="80" height="70" rx="10" fill="#0ea5e9" opacity="0.9"/>
+  <rect x="322" y="160" width="80" height="70" rx="10" fill="#0ea5e9" opacity="0.9"/>
+  <!-- Door -->
+  <rect x="380" y="260" width="30" height="70" rx="4" fill="#e2e8f0"/>
+  <line x1="395" y1="260" x2="395" y2="330" stroke="#0ea5e9" stroke-width="2"/>
+  <!-- Stripe -->
+  <rect x="90" y="255" width="300" height="18" rx="0" fill="#0284c7"/>
+  <!-- Wheels -->
+  <circle cx="170" cy="360" r="32" fill="#1e293b"/>
+  <circle cx="170" cy="360" r="16" fill="#64748b"/>
+  <circle cx="342" cy="360" r="32" fill="#1e293b"/>
+  <circle cx="342" cy="360" r="16" fill="#64748b"/>
+  <!-- Headlights -->
+  <rect x="90" y="300" width="16" height="24" rx="4" fill="#fbbf24"/>
+  <rect x="406" y="300" width="16" height="24" rx="4" fill="#fbbf24"/>
+</svg>
