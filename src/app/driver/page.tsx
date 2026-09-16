@@ -113,8 +113,21 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
         speed: speedKmph || prev.speed || 0,
         etaMinutes,
       }));
+
+      fetch("/api/location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          busId: `bus-${activeBusNumber || "01"}`,
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+          speed: speedKmph,
+          currentStopIndex,
+          nextStopIndex,
+        }),
+      }).catch(() => {});
     },
-    [activeRoute]
+    [activeRoute, activeBusNumber]
   );
 
   const startDemoSimulation = useCallback(() => {
@@ -139,6 +152,19 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
           if (etaMinutes < 1) etaMinutes = 1;
         }
 
+        fetch("/api/location", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            busId: `bus-${activeBusNumber || "01"}`,
+            latitude: result.latitude,
+            longitude: result.longitude,
+            speed,
+            currentStopIndex: result.currentStopIndex,
+            nextStopIndex: result.nextStopIndex,
+          }),
+        }).catch(() => {});
+
         return {
           ...prev,
           currentPosition: { latitude: result.latitude, longitude: result.longitude },
@@ -150,7 +176,7 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
         };
       });
     }, 3000);
-  }, [activeRoute]);
+  }, [activeRoute, activeBusNumber]);
 
   const stopDemoSimulation = useCallback(() => {
     if (demoIntervalRef.current) {

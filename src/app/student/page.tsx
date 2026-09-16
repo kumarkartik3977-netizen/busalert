@@ -15,6 +15,7 @@ import StopList from "@/components/StopList/StopList";
 import StudentRouteForm from "@/components/StudentRouteForm/StudentRouteForm";
 import dynamic from "next/dynamic";
 import type { Notification, StudentRoute, RouteStop } from "@/types";
+import type { BusLocationSnapshot } from "@/lib/locationService";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap/RouteMap"), { ssr: false });
 
@@ -61,6 +62,30 @@ function getDefaultBus(): BusInfo {
   };
 }
 
+async function fetchLiveBusInfo(busId: string): Promise<BusInfo | null> {
+  try {
+    const res = await fetch(`/api/location/${busId}`);
+    if (!res.ok) return null;
+    const data: BusLocationSnapshot = await res.json();
+    if (!data.isOnline) return null;
+
+    const demoBus = DEMO_BUSES.find(b => b.busId === busId) || DEMO_BUSES[0];
+    const route = getRouteForBus(busId);
+    const nextStopName = route?.stops[data.nextStopIndex]?.name || "Next Stop";
+
+    return {
+      busNumber: demoBus.busNumber,
+      status: "ON_ROUTE",
+      currentLocation: { latitude: data.latitude, longitude: data.longitude },
+      eta: 0,
+      nextStop: nextStopName,
+      lastUpdate: data.lastUpdatedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function getFilteredRouteStops(fullRoute: RouteStop[], originId: string, destId: string): RouteStop[] {
   const originIdx = fullRoute.findIndex((s) => s.stopId === originId);
   const destIdx = fullRoute.findIndex((s) => s.stopId === destId);
@@ -72,7 +97,7 @@ function getFilteredRouteStops(fullRoute: RouteStop[], originId: string, destId:
 
 export default function StudentDashboard() {
   const [demoToggled, setDemoToggled] = useState(() => isDemoMode());
-  const [selectedBus] = useState<BusInfo>(() => getDefaultBus());
+  const [selectedBus, setSelectedBus] = useState<BusInfo>(() => getDefaultBus());
   const [savedRoute, setSavedRoute] = useState<StudentRoute | null>(null);
   const [showRouteForm, setShowRouteForm] = useState(false);
   const router = useRouter();
@@ -89,6 +114,19 @@ export default function StudentDashboard() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  useEffect(() => {
+    if (demoToggled) return;
+
+    const poll = async () => {
+      const live = await fetchLiveBusInfo("bus-01");
+      if (live) setSelectedBus(live);
+    };
+
+    poll();
+    const interval = setInterval(poll, 5000);
+    return () => clearInterval(interval);
+  }, [demoToggled]);
 
   const allRouteStops: RouteStop[] = useMemo(() => {
     return getRouteForBus("bus-01")?.stops || DEMO_STOPS;

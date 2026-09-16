@@ -11,6 +11,7 @@ import { GpsSimulator } from "@/lib/simulation/gpsSimulator";
 import { calculateStopETAs, detectGeofenceArrival } from "@/lib/eta/engine";
 import { getStopsForBus, DEMO_BUSES, getRouteForBus } from "@/lib/demoData";
 import type { BusStop, StopETA, BusLiveStatus } from "@/types";
+import type { BusLocationSnapshot } from "@/lib/locationService";
 import dynamic from "next/dynamic";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap/RouteMap"), { ssr: false });
@@ -51,10 +52,72 @@ export default function TrackingPage() {
   const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
   const [isSimulating, setIsSimulating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dataSource, setDataSource] = useState<"live" | "simulated">("simulated");
 
   const bus = DEMO_BUSES.find((b) => b.busId === busId);
   const route = bus ? getRouteForBus(busId) : undefined;
   const stops: BusStop[] = bus ? getStopsForBus(busId) : [];
+
+  const fetchLiveLocation = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/location/${busId}`);
+      if (res.ok) {
+        const data: BusLocationSnapshot = await res.json();
+        if (data.isOnline) {
+          setDataSource("live");
+          const now = new Date();
+
+          speedReadingsRef.current.push(data.speed);
+          if (speedReadingsRef.current.length > 5) speedReadingsRef.current.shift();
+
+          const etas = calculateStopETAs(
+            stops,
+            data.latitude,
+            data.longitude,
+            data.speed,
+            speedReadingsRef.current,
+            now
+          );
+
+          const nextStopIdx = data.nextStopIndex;
+          const currentStopIdx = data.currentStopIndex;
+
+          let nextStopName = stops[stops.length - 1].stopName;
+          let distanceToNext = 0;
+          let etaMinutes = 0;
+
+          if (nextStopIdx < stops.length) {
+            const nextStop = etas[nextStopIdx];
+            nextStopName = nextStop.stopName;
+            distanceToNext = nextStop.distanceFromCurrentLocation / 1000;
+            etaMinutes = Math.round(distanceToNext / (data.speed > 0 ? data.speed : 25) * 60);
+          }
+
+          const lastStop = etas[currentStopIdx] || etas[0];
+          const delay = Math.max(0, Math.round(
+            (now.getTime() - new Date(`1970-01-01T${lastStop.scheduledArrival}:00`).getTime()) / 60000
+          ));
+
+          setStopETAs(etas);
+          setLiveStatus({
+            busId,
+            currentLatitude: data.latitude,
+            currentLongitude: data.longitude,
+            currentSpeedKmph: Math.round(data.speed),
+            lastUpdatedStop: lastStop.stopName,
+            nextStop: nextStopName,
+            distanceToNextStop: parseFloat(distanceToNext.toFixed(1)),
+            estimatedArrivalAtNextStop: etaMinutes,
+            delayInMinutes: delay,
+            lastUpdatedAt: data.lastUpdatedAt,
+            speedReadings: [...speedReadingsRef.current],
+          });
+          return true;
+        }
+      }
+    } catch {}
+    return false;
+  }, [busId, stops]);
 
   const tick = useCallback(() => {
     const sim = simulatorRef.current;
@@ -118,27 +181,43 @@ export default function TrackingPage() {
       return;
     }
 
-    const coords = stops.map((s) => ({
-      latitude: s.latitude,
-      longitude: s.longitude,
-    }));
+    let cancelled = false;
 
-    simulatorRef.current = new GpsSimulator(coords, 30);
-    setIsSimulating(true);
+    const startTracking = async () => {
+      const gotLive = await fetchLiveLocation();
 
-    tick();
+      if (cancelled) return;
 
-    intervalRef.current = setInterval(() => {
-      tick();
-    }, 15000);
+      if (!gotLive) {
+        setDataSource("simulated");
+        const coords = stops.map((s) => ({
+          latitude: s.latitude,
+          longitude: s.longitude,
+        }));
+        simulatorRef.current = new GpsSimulator(coords, 30);
+        setIsSimulating(true);
+        tick();
+      }
 
-    setLoading(false);
+      setLoading(false);
+
+      intervalRef.current = setInterval(() => {
+        if (!gotLive) {
+          tick();
+        } else {
+          fetchLiveLocation();
+        }
+      }, 5000);
+    };
+
+    startTracking();
 
     return () => {
+      cancelled = true;
       if (intervalRef.current) clearInterval(intervalRef.current);
       simulatorRef.current = null;
     };
-  }, [bus, stops, tick]);
+  }, [bus, stops, tick, fetchLiveLocation]);
 
   const handleRefresh = useCallback(() => {
     tick();
@@ -197,12 +276,12 @@ export default function TrackingPage() {
             {formatDateLabel(selectedDate)} ▾
           </button>
           {isSimulating && (
-            <div className="flex items-center gap-1.5 text-xs text-green-600">
+            <div className={`flex items-center gap-1.5 text-xs ${dataSource === "live" ? "text-green-600" : "text-yellow-600"}`}>
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${dataSource === "live" ? "bg-green-400" : "bg-yellow-400"}`} />
+                <span className={`relative inline-flex h-2 w-2 rounded-full ${dataSource === "live" ? "bg-green-500" : "bg-yellow-500"}`} />
               </span>
-              Live
+              {dataSource === "live" ? "Live GPS" : "Simulated"}
             </div>
           )}
         </div>
