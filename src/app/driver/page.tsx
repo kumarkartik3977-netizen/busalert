@@ -16,6 +16,7 @@ import { haversineDistance } from "@/lib/eta";
 import { DEMO_ROUTES } from "@/lib/demoData";
 import StatusBadge from "@/components/StatusBadge/StatusBadge";
 import StopList from "@/components/StopList/StopList";
+import RouteProgressTimeline from "@/components/RouteProgressTimeline/RouteProgressTimeline";
 import dynamic from "next/dynamic";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap/RouteMap"), { ssr: false });
@@ -68,6 +69,10 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
   const [gpsStatus, setGpsStatus] = useState<"idle" | "active" | "error">("idle");
   const [gpsError, setGpsError] = useState<string>("");
   const [demoToggled, setDemoToggled] = useState(() => isDemoMode());
+  const [isGrabMode, setIsGrabMode] = useState(false);
+  const [grabbedLocations, setGrabbedLocations] = useState<Record<string, { latitude: number; longitude: number }>>({});
+  const [grabStatus, setGrabStatus] = useState<string>("");
+  const [expandedGrabStop, setExpandedGrabStop] = useState<string | null>(null);
   const [activeRoute] = useState<RouteStop[]>(() => {
     if (isDemoMode() && route.length === 0) {
       return DEMO_ROUTES[0].stops;
@@ -212,6 +217,69 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
     setDemoMode(newDemo);
   };
 
+  const handleGrabLocation = async (stopId: string, stopName: string) => {
+    setGrabStatus(`Capturing location for ${stopName}...`);
+    try {
+      const pos = await getCurrentLocation();
+      if (pos.error && !isDemoMode()) {
+        setGrabStatus(`Error: ${pos.error}`);
+        return;
+      }
+      setGrabbedLocations((prev) => ({
+        ...prev,
+        [stopId]: { latitude: pos.latitude, longitude: pos.longitude },
+      }));
+      setGrabStatus(`Captured ${stopName} successfully!`);
+    } catch {
+      setGrabStatus("Failed to get location. Please try again.");
+    }
+  };
+
+  const handleGrabAllStops = async () => {
+    setGrabStatus("Grabbing all stops sequentially...");
+    for (let i = 0; i < activeRoute.length; i++) {
+      const stop = activeRoute[i];
+      setGrabStatus(`Capturing stop ${i + 1}/${activeRoute.length}: ${stop.name}...`);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const pos = await getCurrentLocation();
+      if (pos.error && !isDemoMode()) {
+        setGrabStatus(`Error at ${stop.name}: ${pos.error}. Stopping.`);
+        return;
+      }
+      setGrabbedLocations((prev) => ({
+        ...prev,
+        [stop.stopId]: { latitude: pos.latitude, longitude: pos.longitude },
+      }));
+    }
+    setGrabStatus(`All ${activeRoute.length} stops captured!`);
+  };
+
+  const handleExportGrabbedLocations = () => {
+    const exportData = activeRoute.map((stop) => {
+      const grabbed = grabbedLocations[stop.stopId];
+      return {
+        stopId: stop.stopId,
+        originalName: stop.name,
+        originalLatitude: stop.latitude,
+        originalLongitude: stop.longitude,
+        grabbedLatitude: grabbed?.latitude ?? null,
+        grabbedLongitude: grabbed?.longitude ?? null,
+        grabbed: !!grabbed,
+      };
+    });
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bus-stop-locations-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setGrabStatus("Locations exported to JSON file!");
+  };
+
   const handleLogout = () => {
     stopWatchingPosition();
     stopDemoSimulation();
@@ -308,6 +376,18 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
           </div>
         </div>
 
+        {state.isOnTrip && (
+          <div className="mb-6">
+            <RouteProgressTimeline
+              route={activeRoute}
+              currentStopIndex={state.currentStopIndex}
+              nextStopIndex={state.nextStopIndex}
+              speed={state.speed}
+              etaMinutes={state.etaMinutes}
+            />
+          </div>
+        )}
+
         <div className="mb-6">
           <RouteMap
             route={activeRoute}
@@ -322,6 +402,116 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
           currentStopIndex={state.currentStopIndex}
           nextStopIndex={state.nextStopIndex}
         />
+
+        <div className="mt-6 bg-white rounded-2xl shadow-lg border-l-4 border-blue-500">
+          <button
+            onClick={() => setIsGrabMode(!isGrabMode)}
+            className="w-full px-6 py-4 flex items-center justify-between text-left"
+          >
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Grab Bus Stop Locations</h2>
+              <p className="text-sm text-gray-600">
+                {Object.keys(grabbedLocations).length}/{activeRoute.length} stops captured
+              </p>
+            </div>
+            <svg
+              className={`w-5 h-5 text-gray-500 transition-transform ${isGrabMode ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {isGrabMode && (
+            <div className="px-6 pb-6">
+              <div className="flex flex-wrap gap-3 mb-4">
+                <button
+                  onClick={handleGrabAllStops}
+                  className="px-4 py-2 rounded-md font-bold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-sm"
+                >
+                  Grab All Stops
+                </button>
+                <button
+                  onClick={handleExportGrabbedLocations}
+                  disabled={Object.keys(grabbedLocations).length === 0}
+                  className="px-4 py-2 rounded-md font-bold bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Export Locations (JSON)
+                </button>
+                <button
+                  onClick={() => setGrabbedLocations({})}
+                  className="px-4 py-2 rounded-md font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors text-sm"
+                >
+                  Clear All
+                </button>
+              </div>
+
+              {grabStatus && (
+                <p className="text-sm text-blue-700 bg-blue-50 rounded-md px-3 py-2 mb-4">{grabStatus}</p>
+              )}
+
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {activeRoute.map((stop) => {
+                  const grabbed = grabbedLocations[stop.stopId];
+                  const isExpanded = expandedGrabStop === stop.stopId;
+                  const isCaptured = !!grabbed;
+
+                  return (
+                    <div
+                      key={stop.stopId}
+                      className={`border rounded-lg p-3 transition-colors ${isCaptured ? "border-green-300 bg-green-50" : "border-gray-200 bg-gray-50"}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`h-2 w-2 rounded-full ${isCaptured ? "bg-green-500" : "bg-gray-300"}`}
+                          />
+                          <span className="font-medium text-gray-900 text-sm">{stop.name}</span>
+                          <span className="text-xs text-gray-500">#{stop.order + 1}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() =>
+                              setExpandedGrabStop(isExpanded ? null : stop.stopId)
+                            }
+                            className="text-xs text-gray-500 hover:text-gray-700"
+                          >
+                            {isExpanded ? "Hide" : "Details"}
+                          </button>
+                          <button
+                            onClick={() => handleGrabLocation(stop.stopId, stop.name)}
+                            className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
+                              isCaptured
+                                ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                                : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                            }`}
+                          >
+                            {isCaptured ? "Recapture" : "Capture"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-600 space-y-1">
+                          <p>Original: {stop.latitude.toFixed(6)}, {stop.longitude.toFixed(6)}</p>
+                          {grabbed ? (
+                            <p className="text-green-700 font-medium">
+                              Grabbed: {grabbed.latitude.toFixed(6)}, {grabbed.longitude.toFixed(6)}
+                            </p>
+                          ) : (
+                            <p className="text-gray-400">Not yet captured</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

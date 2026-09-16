@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import BusHeader from "@/components/BusHeader/BusHeader";
 import StopTimeline from "@/components/StopTimeline/StopTimeline";
 import LiveStatusCard from "@/components/StopTimeline/LiveStatusCard";
+import RouteProgressTimeline from "@/components/RouteProgressTimeline/RouteProgressTimeline";
+import BusRouteIndicator from "@/components/BusRouteIndicator/BusRouteIndicator";
 import { GpsSimulator } from "@/lib/simulation/gpsSimulator";
 import { calculateStopETAs, detectGeofenceArrival } from "@/lib/eta/engine";
 import { getStopsForBus, DEMO_BUSES, getRouteForBus } from "@/lib/demoData";
@@ -213,6 +215,37 @@ export default function TrackingPage() {
             currentSpeed={liveStatus.currentSpeedKmph}
             lastUpdatedAt={liveStatus.lastUpdatedAt}
             onRefresh={handleRefresh}
+          />
+        )}
+
+        {liveStatus && (
+          <BusRouteIndicator
+            route={route.stops.map((s, i) => ({
+              stopId: s.stopId,
+              name: s.name,
+              latitude: s.latitude,
+              longitude: s.longitude,
+              order: i,
+            }))}
+            currentStopIndex={stops.findIndex((s) => s.stopName === liveStatus.lastUpdatedStop)}
+            nextStopIndex={stops.findIndex((s) => s.stopName === liveStatus.nextStop)}
+            busNumber={bus.busNumber}
+          />
+        )}
+
+        {liveStatus && (
+          <RouteProgressTimeline
+            route={route.stops.map((s, i) => ({
+              stopId: s.stopId,
+              name: s.name,
+              latitude: s.latitude,
+              longitude: s.longitude,
+              order: i,
+            }))}
+            currentStopIndex={stops.findIndex((s) => s.stopName === liveStatus.lastUpdatedStop)}
+            nextStopIndex={stops.findIndex((s) => s.stopName === liveStatus.nextStop)}
+            speed={liveStatus.currentSpeedKmph}
+            etaMinutes={liveStatus.estimatedArrivalAtNextStop}
           />
         )}
 

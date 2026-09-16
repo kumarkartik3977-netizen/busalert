@@ -43,3 +43,58 @@ body {
   border-radius: 1rem;
   z-index: 0;
 }
+
+/* Bus marker animations */
+@keyframes busGlow {
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(37, 99, 235, 0.4); }
+  50% { box-shadow: 0 0 20px 6px rgba(37, 99, 235, 0.7); }
+}
+
+@keyframes busPulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes busBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes routeDash {
+  to { stroke-dashoffset: -20; }
+}
+
+@keyframes progressPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+
+.bus-marker-icon {
+  animation: busBounce 1.5s ease-in-out infinite;
+}
+
+.bus-marker-glow {
+  animation: busGlow 2s ease-in-out infinite;
+}
+
+.bus-pulse-ring {
+  animation: busPulse 2s ease-in-out infinite;
+}
+
+.route-completed {
+  stroke-dasharray: none;
+}
+
+.route-remaining {
+  stroke-dasharray: 8 4;
+  animation: routeDash 1s linear infinite;
+}
+
+.progress-dot-active {
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
