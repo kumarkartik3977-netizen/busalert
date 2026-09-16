@@ -82,11 +82,11 @@ function FitBounds({ route }: { route: RouteStop[] }) {
 function AnimatedBusMarker({ position, icon }: { position: L.LatLngExpression; icon: L.DivIcon }) {
   const map = useMap();
   const [smoothPos, setSmoothPos] = useState<[number, number]>(
-    Array.isArray(position) ? position : [position as unknown as number, 0]
+    Array.isArray(position) ? [position[0], position[1]] : [position as unknown as number, 0]
   );
 
   useEffect(() => {
-    const target = Array.isArray(position) ? position : [position as unknown as number, 0];
+    const target: [number, number] = Array.isArray(position) ? [position[0], position[1]] : [position as unknown as number, 0];
     const start = [...smoothPos];
     const startTime = Date.now();
     const duration = 800;
