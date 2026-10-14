@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { useRouter } from "next/navigation";
 import {
   isDemoMode,
   setDemoMode,
@@ -11,9 +9,10 @@ import {
   startWatchingPosition,
   stopWatchingPosition,
 } from "@/lib/geolocation";
-import { getFirebaseAuth } from "@/lib/firebase";
 import { haversineDistance } from "@/lib/eta";
 import { DEMO_ROUTES } from "@/lib/demoData";
+import { useAuth } from "@/context/AuthContext";
+import AuthGuard from "@/components/AuthGuard/AuthGuard";
 import StatusBadge from "@/components/StatusBadge/StatusBadge";
 import StopList from "@/components/StopList/StopList";
 import RouteProgressTimeline from "@/components/RouteProgressTimeline/RouteProgressTimeline";
@@ -55,7 +54,7 @@ function findNearestStopIndex(
   };
 }
 
-export default function DriverDashboard({ busNumber = "", route = [], onTripStart, onTripEnd }: DriverDashboardProps) {
+function DriverDashboardContent({ busNumber = "", route = [], onTripStart, onTripEnd }: DriverDashboardProps) {
   const [state, setState] = useState({
     isOnTrip: false,
     currentPosition: null as { latitude: number; longitude: number } | null,
@@ -85,16 +84,8 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
     }
     return busNumber;
   });
-  const router = useRouter();
+  const { logout } = useAuth();
   const demoIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (isDemoMode()) return;
-    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
-      if (!user) router.push("/login");
-    });
-    return () => unsubscribe();
-  }, [router]);
 
   const handleGpsPosition = useCallback(
     (pos: { latitude: number; longitude: number; speed: number; timestamp: number }) => {
@@ -310,9 +301,7 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
     stopWatchingPosition();
     stopDemoSimulation();
     setDemoMode(false);
-    localStorage.removeItem("busalert_user_role");
-    getFirebaseAuth().signOut();
-    router.push("/login");
+    logout();
   };
 
   useEffect(() => {
@@ -540,5 +529,13 @@ export default function DriverDashboard({ busNumber = "", route = [], onTripStar
         </div>
       </main>
     </div>
+  );
+}
+
+export default function DriverDashboardPage() {
+  return (
+    <AuthGuard role="driver">
+      <DriverDashboardContent />
+    </AuthGuard>
   );
 }

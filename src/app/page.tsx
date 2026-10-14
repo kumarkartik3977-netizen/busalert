@@ -34,7 +34,7 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link
-              href="/login"
+              href="/signup"
               className="px-8 py-3 rounded-lg font-bold text-white bg-primary hover:bg-primary-dark transition-colors text-lg"
             >
               Get Started

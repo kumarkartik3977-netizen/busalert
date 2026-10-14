@@ -4,10 +4,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { calculateETA } from "@/lib/eta";
 import { isDemoMode, setDemoMode } from "@/lib/geolocation";
-import { onAuthStateChanged } from "firebase/auth";
-import { getFirebaseAuth } from "@/lib/firebase";
 import { DEMO_BUSES, DEMO_ROUTES, DEMO_STOPS, DEMO_SCHEDULE, getRouteForBus } from "@/lib/demoData";
 import { generateNotifications } from "@/lib/notifications";
+import { useAuth } from "@/context/AuthContext";
+import AuthGuard from "@/components/AuthGuard/AuthGuard";
 import ETACard from "@/components/ETACard/ETACard";
 import NotificationBanner from "@/components/NotificationBanner/NotificationBanner";
 import StatusBadge from "@/components/StatusBadge/StatusBadge";
@@ -95,25 +95,42 @@ function getFilteredRouteStops(fullRoute: RouteStop[], originId: string, destId:
   return fullRoute.slice(start, end + 1);
 }
 
-export default function StudentDashboard() {
+function StudentDashboardContent() {
   const [demoToggled, setDemoToggled] = useState(() => isDemoMode());
   const [selectedBus, setSelectedBus] = useState<BusInfo>(() => getDefaultBus());
   const [savedRoute, setSavedRoute] = useState<StudentRoute | null>(null);
   const [showRouteForm, setShowRouteForm] = useState(false);
+  const { profile, logout } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    setSavedRoute(loadSavedRoute());
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
-      if (!user && !isDemoMode()) {
-        router.push("/login");
+    const existing = loadSavedRoute();
+    if (existing) {
+      setSavedRoute(existing);
+      return;
+    }
+    if (profile?.boardingStopId) {
+      const stops = getRouteForBus(profile.routeId || "bus-01")?.stops || DEMO_STOPS;
+      const origin = stops.find((s) => s.stopId === profile.boardingStopId);
+      const dest = profile.destinationStopId
+        ? stops.find((s) => s.stopId === profile.destinationStopId)
+        : undefined;
+      if (origin) {
+        const seeded: StudentRoute = {
+          originStopId: origin.stopId,
+          destinationStopId: dest?.stopId ?? origin.stopId,
+          originName: origin.name,
+          destinationName: dest?.name ?? origin.name,
+          originLat: origin.latitude,
+          originLng: origin.longitude,
+          destinationLat: dest?.latitude ?? origin.latitude,
+          destinationLng: dest?.longitude ?? origin.longitude,
+        };
+        setSavedRoute(seeded);
+        saveRoute(seeded);
       }
-    });
-    return () => unsubscribe();
-  }, [router]);
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (demoToggled) return;
@@ -196,11 +213,8 @@ export default function StudentDashboard() {
   }, []);
 
   const handleLogout = useCallback(() => {
-    setDemoMode(false);
-    localStorage.removeItem("busalert_user_role");
-    getFirebaseAuth().signOut();
-    router.push("/login");
-  }, [router]);
+    logout();
+  }, [logout]);
 
   const handleSaveRoute = useCallback((route: StudentRoute) => {
     setSavedRoute(route);
@@ -219,6 +233,15 @@ export default function StudentDashboard() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">BUSALERT</h1>
           <div className="flex items-center gap-3">
+            {profile && (
+              <div className="hidden sm:flex flex-col items-end mr-1">
+                <span className="text-sm font-semibold text-gray-900">{profile.name}</span>
+                <span className="text-xs text-gray-500">
+                  {profile.branch ? `${profile.branch} · ` : ""}
+                  {profile.routeName ?? "Bus pass active"}
+                </span>
+              </div>
+            )}
             <span className="text-sm text-gray-800 font-medium">
               {demoToggled ? "DEMO MODE" : "Live"}
             </span>
@@ -391,5 +414,13 @@ export default function StudentDashboard() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function StudentDashboard() {
+  return (
+    <AuthGuard role="student">
+      <StudentDashboardContent />
+    </AuthGuard>
   );
 }

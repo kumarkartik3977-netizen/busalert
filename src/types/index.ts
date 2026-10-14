@@ -1,8 +1,42 @@
+export type AppRole = "student" | "driver" | "admin";
+
 export interface User {
   uid: string;
   email: string | null;
   displayName: string | null;
-  role: "student" | "driver" | "admin";
+  role: AppRole;
+}
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  name: string;
+  role: AppRole;
+  mobile?: string;
+  branch?: string;
+  rollNo?: string;
+  routeId?: string;
+  routeName?: string;
+  boardingStopId?: string;
+  boardingStopName?: string;
+  destinationStopId?: string;
+  destinationStopName?: string;
+  createdAt: number;
+}
+
+export interface StudentSignUpData {
+  name: string;
+  email: string;
+  password: string;
+  mobile: string;
+  branch: string;
+  rollNo?: string;
+  routeId: string;
+  routeName: string;
+  boardingStopId: string;
+  boardingStopName: string;
+  destinationStopId?: string;
+  destinationStopName?: string;
 }
 
 export interface Driver {

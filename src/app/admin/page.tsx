@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { isDemoMode, setDemoMode } from "@/lib/geolocation";
-import { getFirebaseAuth } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
+import AuthGuard from "@/components/AuthGuard/AuthGuard";
 import { DEMO_ANALYTICS, DEMO_ROUTES, DEMO_BUSES, DEMO_DRIVERS } from "@/lib/demoData";
 import type { Bus, Driver } from "@/types";
 import BusCard from "@/components/BusCard/BusCard";
@@ -21,7 +21,8 @@ interface BusAnalytics {
   onTimePercentage: number;
 }
 
-export default function AdminDashboard() {
+function AdminDashboardContent() {
+  const { logout } = useAuth();
   const router = useRouter();
   const [demoToggled, setDemoToggled] = useState(() => isDemoMode());
   const [buses, setBuses] = useState<Bus[]>(() => [...DEMO_BUSES]);
@@ -31,14 +32,6 @@ export default function AdminDashboard() {
   const [showBusForm, setShowBusForm] = useState(false);
   const [showDriverForm, setShowDriverForm] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "buses" | "drivers">("overview");
-
-  useEffect(() => {
-    if (isDemoMode()) return;
-    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
-      if (!user) router.push("/login");
-    });
-    return () => unsubscribe();
-  }, [router]);
 
   const analytics: BusAnalytics[] = DEMO_ANALYTICS.map((a) => ({
     ...a,
@@ -58,9 +51,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     setDemoMode(false);
-    localStorage.removeItem("busalert_user_role");
-    getFirebaseAuth().signOut();
-    router.push("/login");
+    logout();
   };
 
   function handleSaveBus(updated: Bus) {
@@ -602,5 +593,13 @@ function DriverForm({ driver, buses, drivers, onSave, onDelete, onCancel }: { dr
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminDashboard() {
+  return (
+    <AuthGuard role="admin">
+      <AdminDashboardContent />
+    </AuthGuard>
   );
 }

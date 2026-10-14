@@ -2,27 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
-import { getFirebaseAuth } from "@/lib/firebase";
-import { isDemoMode, setDemoMode } from "@/lib/geolocation";
+import AuthGuard from "@/components/AuthGuard/AuthGuard";
 import { DEMO_BUSES, getStopsForBus } from "@/lib/demoData";
 import AddStopForm from "@/components/AddStopForm/AddStopForm";
 import type { BusStop } from "@/types";
 
-export default function ManageStopsPage() {
+function ManageStopsContent() {
   const router = useRouter();
   const [selectedBusId, setSelectedBusId] = useState("");
   const [stops, setStops] = useState<BusStop[]>([]);
   const [editingStop, setEditingStop] = useState<BusStop | null>(null);
   const [showForm, setShowForm] = useState(false);
-
-  useEffect(() => {
-    if (isDemoMode()) return;
-    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
-      if (!user) router.push("/login");
-    });
-    return () => unsubscribe();
-  }, [router]);
 
   useEffect(() => {
     if (selectedBusId) {
@@ -169,5 +159,13 @@ export default function ManageStopsPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function ManageStopsPage() {
+  return (
+    <AuthGuard role="admin">
+      <ManageStopsContent />
+    </AuthGuard>
   );
 }
