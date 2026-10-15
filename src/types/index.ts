@@ -22,6 +22,16 @@ export interface UserProfile {
   destinationStopId?: string;
   destinationStopName?: string;
   createdAt: number;
+  lastSignInAt?: number;
+}
+
+export interface LoginRecord {
+  id: string;
+  uid: string;
+  email: string;
+  name: string;
+  role: AppRole;
+  signInAt: number;
 }
 
 export interface StudentSignUpData {

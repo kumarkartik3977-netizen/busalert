@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isDemoMode, setDemoMode } from "@/lib/geolocation";
 import { useAuth } from "@/context/AuthContext";
 import AuthGuard from "@/components/AuthGuard/AuthGuard";
 import { DEMO_ANALYTICS, DEMO_ROUTES, DEMO_BUSES, DEMO_DRIVERS } from "@/lib/demoData";
-import type { Bus, Driver } from "@/types";
+import { getRecentSignInUsers } from "@/lib/userService";
+import type { Bus, Driver, LoginRecord } from "@/types";
 import BusCard from "@/components/BusCard/BusCard";
 import * as Recharts from "recharts";
 
@@ -31,7 +32,27 @@ function AdminDashboardContent() {
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [showBusForm, setShowBusForm] = useState(false);
   const [showDriverForm, setShowDriverForm] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "buses" | "drivers">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "buses" | "drivers" | "signedIn">("overview");
+  const [signedInUsers, setSignedInUsers] = useState<LoginRecord[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "signedIn") {
+      loadSignedInUsers();
+    }
+  }, [activeTab]);
+
+  async function loadSignedInUsers() {
+    setLoadingUsers(true);
+    try {
+      const users = await getRecentSignInUsers(100);
+      setSignedInUsers(users);
+    } catch (err) {
+      console.error("Failed to load signed-in users:", err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }
 
   const analytics: BusAnalytics[] = DEMO_ANALYTICS.map((a) => ({
     ...a,
@@ -122,6 +143,12 @@ function AdminDashboardContent() {
             className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === "drivers" ? "bg-primary text-white" : "bg-white text-gray-700 hover:bg-gray-50"}`}
           >
             Driver Details
+          </button>
+          <button
+            onClick={() => setActiveTab("signedIn")}
+            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === "signedIn" ? "bg-primary text-white" : "bg-white text-gray-700 hover:bg-gray-50"}`}
+          >
+            Signed-In Users
           </button>
           <button
             onClick={() => router.push("/admin/stops")}
@@ -339,6 +366,76 @@ function AdminDashboardContent() {
                 onCancel={() => { setEditingDriver(null); setShowDriverForm(false); }}
               />
             )}
+          </div>
+        )}
+
+        {activeTab === "signedIn" && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-bold text-gray-900">SIGNED-IN USERS</h3>
+                  <p className="text-sm text-gray-500">List of persons who have signed in</p>
+                </div>
+                <button
+                  onClick={loadSignedInUsers}
+                  disabled={loadingUsers}
+                  className="px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50"
+                >
+                  {loadingUsers ? "Loading..." : "Refresh"}
+                </button>
+              </div>
+
+              {loadingUsers ? (
+                <div className="flex items-center justify-center py-12">
+                  <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                </div>
+              ) : signedInUsers.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No sign-ins recorded yet.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left border-b border-gray-300">
+                        <th className="p-3 text-gray-900 font-bold">Name</th>
+                        <th className="p-3 text-gray-900 font-bold">Email</th>
+                        <th className="p-3 text-gray-900 font-bold">Role</th>
+                        <th className="p-3 text-gray-900 font-bold">Signed In At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {signedInUsers.map((record) => (
+                        <tr key={record.id} className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="p-3 font-bold text-gray-900">{record.name}</td>
+                          <td className="p-3 text-gray-800">{record.email}</td>
+                          <td className="p-3">
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-bold ${
+                                record.role === "admin"
+                                  ? "bg-purple-100 text-purple-700"
+                                  : record.role === "driver"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-blue-100 text-blue-700"
+                              }`}
+                            >
+                              {record.role.charAt(0).toUpperCase() + record.role.slice(1)}
+                            </span>
+                          </td>
+                          <td className="p-3 text-gray-800">
+                            {new Date(record.signInAt).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>

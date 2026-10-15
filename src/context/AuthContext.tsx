@@ -26,7 +26,9 @@ import {
   dashboardPathForRole,
   getStoredRole,
   getUserProfile,
+  recordSignIn,
   storeRole,
+  updateUserProfile,
 } from "@/lib/userService";
 import type { AppRole, StudentSignUpData, UserProfile } from "@/types";
 
@@ -36,7 +38,7 @@ interface AuthContextValue {
   role: AppRole | null;
   loading: boolean;
   isDemo: boolean;
-  signIn: (email: string, password: string) => Promise<AppRole>;
+  signIn: (email: string, password: string, selectedRole?: AppRole) => Promise<AppRole>;
   signUpStudent: (data: StudentSignUpData) => Promise<void>;
   demoLogin: (role: AppRole) => void;
   logout: () => Promise<void>;
@@ -150,11 +152,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(
-    async (email: string, password: string): Promise<AppRole> => {
+    async (email: string, password: string, selectedRole?: AppRole): Promise<AppRole> => {
       try {
         const cred = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
-        const resolvedRole = await resolveRole(cred.user);
+        let resolvedRole = await resolveRole(cred.user);
+
+        if (selectedRole && selectedRole !== resolvedRole) {
+          await updateUserProfile(cred.user.uid, { role: selectedRole });
+          resolvedRole = selectedRole;
+        }
+
+        setProfile((prev) => (prev ? { ...prev, role: resolvedRole } : prev));
         setRole(resolvedRole);
+        storeRole(resolvedRole);
+
+        const displayName =
+          cred.user.displayName || cred.user.email?.split("@")[0] || "User";
+        await recordSignIn(
+          cred.user.uid,
+          cred.user.email ?? email,
+          displayName,
+          resolvedRole
+        );
+
         return resolvedRole;
       } catch (err) {
         throw new Error(firebaseAuthErrorMessage(err));
@@ -190,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(newProfile);
         setRole("student");
         storeRole("student");
+        await recordSignIn(cred.user.uid, data.email, data.name, "student");
       } catch (err) {
         throw new Error(firebaseAuthErrorMessage(err));
       }
