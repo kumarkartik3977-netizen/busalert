@@ -33,6 +33,13 @@ function formatDateLabel(dateStr: string): string {
   return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
 }
 
+function getScheduledDate(now: Date, timeStr: string): Date {
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  const scheduled = new Date(now);
+  scheduled.setHours(hours || 0, minutes || 0, 0, 0);
+  return scheduled;
+}
+
 function getTodayString(): string {
   const d = new Date();
   return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getDate().toString().padStart(2, "0")}`;
@@ -95,7 +102,7 @@ export default function TrackingPage() {
 
           const lastStop = etas[currentStopIdx] || etas[0];
           const delay = Math.max(0, Math.round(
-            (now.getTime() - new Date(`1970-01-01T${lastStop.scheduledArrival}:00`).getTime()) / 60000
+            (now.getTime() - getScheduledDate(now, lastStop.scheduledArrival).getTime()) / 60000
           ));
 
           setStopETAs(etas);
@@ -156,7 +163,7 @@ export default function TrackingPage() {
 
     const lastStop = etas[currentStopIdx] || etas[0];
     const delay = Math.max(0, Math.round(
-      (now.getTime() - new Date(`1970-01-01T${lastStop.scheduledArrival}:00`).getTime()) / 60000
+      (now.getTime() - getScheduledDate(now, lastStop.scheduledArrival).getTime()) / 60000
     ));
 
     setStopETAs(etas);
