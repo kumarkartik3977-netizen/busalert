@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BusAlert
 
-## Getting Started
+Real-time bus tracking app built with Next.js (App Router), Firebase, and Leaflet.
 
-First, run the development server:
+Students can follow a live bus on a map, see route progress and ETA, and get delay
+notifications. Drivers publish their GPS position, and admins manage stops and monitor
+sign-ins.
+
+## Roles
+
+| Role    | Route        | Capabilities                                          |
+| ------- | ------------ | ----------------------------------------------------- |
+| Student | `/student`   | Follow buses, ETA, route timeline, notifications      |
+| Driver  | `/driver`    | Publish live GPS location for their bus               |
+| Admin   | `/admin`     | Manage stops, view signed-in users and analytics      |
+
+Public pages: `/` (landing), `/login`, `/signup`, `/tracking/[busId]`, `/dashboard`.
+
+## Stack
+
+- **Next.js 16** (App Router, Route Handlers under `src/app/api`)
+- **React 19**, **TypeScript**, **Tailwind CSS 4**
+- **Firebase** — Auth + Firestore (`src/lib/firebase`)
+- **Leaflet / react-leaflet** — live map (`src/components/RouteMap`)
+- **Recharts** — admin analytics
+- **lucide-react** — icons
+
+## Project structure
+
+```
+src/
+  app/          # routes: admin, dashboard, driver, login, signup, student, tracking, api
+  components/   # BusCard, RouteMap, ETACard, StopTimeline, AuthGuard, ...
+  context/      # AuthContext (session + role)
+  lib/          # firebase, eta, geolocation, simulation, demoSimulation
+  types/        # shared TypeScript types
+```
+
+## Getting started
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Create `.env.local` with your Firebase web app config:
+
+```bash
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...
+```
+
+3. Run the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command       | Description              |
+| ------------- | ------------------------ |
+| `npm run dev` | Start dev server         |
+| `npm run build` | Production build       |
+| `npm run start` | Serve production build  |
+| `npm run lint`  | Run ESLint             |
 
-## Learn More
+## Deployment
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deploys to [Vercel](https://vercel.com) — set the `NEXT_PUBLIC_FIREBASE_*` variables in
+the project settings before deploying.
