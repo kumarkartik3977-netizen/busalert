@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { calculateETA } from "@/lib/eta";
 import { isDemoMode, setDemoMode } from "@/lib/geolocation";
@@ -16,29 +16,14 @@ import StudentRouteForm from "@/components/StudentRouteForm/StudentRouteForm";
 import dynamic from "next/dynamic";
 import type { Notification, StudentRoute, RouteStop } from "@/types";
 import type { BusLocationSnapshot } from "@/lib/locationService";
+import {
+  getStudentRoute,
+  getServerStudentRoute,
+  subscribeStudentRoute,
+  updateStudentRoute,
+} from "@/lib/studentRouteStore";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap/RouteMap"), { ssr: false });
-
-const STORAGE_KEY = "busalert_student_route";
-
-function loadSavedRoute(): StudentRoute | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveRoute(route: StudentRoute | null) {
-  if (typeof window === "undefined") return;
-  if (route) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(route));
-  } else {
-    localStorage.removeItem(STORAGE_KEY);
-  }
-}
 
 interface BusInfo {
   busNumber: string;
@@ -98,39 +83,41 @@ function getFilteredRouteStops(fullRoute: RouteStop[], originId: string, destId:
 function StudentDashboardContent() {
   const [demoToggled, setDemoToggled] = useState(() => isDemoMode());
   const [selectedBus, setSelectedBus] = useState<BusInfo>(() => getDefaultBus());
-  const [savedRoute, setSavedRoute] = useState<StudentRoute | null>(null);
+  const savedRoute = useSyncExternalStore(subscribeStudentRoute, getStudentRoute, getServerStudentRoute);
   const [showRouteForm, setShowRouteForm] = useState(false);
   const { profile, logout } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    const existing = loadSavedRoute();
-    if (existing) {
-      setSavedRoute(existing);
-      return;
-    }
-    if (profile?.boardingStopId) {
-      const stops = getRouteForBus(profile.routeId || "bus-01")?.stops || DEMO_STOPS;
-      const origin = stops.find((s) => s.stopId === profile.boardingStopId);
-      const dest = profile.destinationStopId
-        ? stops.find((s) => s.stopId === profile.destinationStopId)
-        : undefined;
-      if (origin) {
-        const seeded: StudentRoute = {
-          originStopId: origin.stopId,
-          destinationStopId: dest?.stopId ?? origin.stopId,
-          originName: origin.name,
-          destinationName: dest?.name ?? origin.name,
-          originLat: origin.latitude,
-          originLng: origin.longitude,
-          destinationLat: dest?.latitude ?? origin.latitude,
-          destinationLng: dest?.longitude ?? origin.longitude,
-        };
-        setSavedRoute(seeded);
-        saveRoute(seeded);
-      }
-    }
+  const seededRoute = useMemo<StudentRoute | null>(() => {
+    if (!profile?.boardingStopId) return null;
+    const stops = getRouteForBus(profile.routeId || "bus-01")?.stops || DEMO_STOPS;
+    const origin = stops.find((s) => s.stopId === profile.boardingStopId);
+    if (!origin) return null;
+    const dest = profile.destinationStopId
+      ? stops.find((s) => s.stopId === profile.destinationStopId)
+      : undefined;
+    return {
+      originStopId: origin.stopId,
+      destinationStopId: dest?.stopId ?? origin.stopId,
+      originName: origin.name,
+      destinationName: dest?.name ?? origin.name,
+      originLat: origin.latitude,
+      originLng: origin.longitude,
+      destinationLat: dest?.latitude ?? origin.latitude,
+      destinationLng: dest?.longitude ?? origin.longitude,
+    };
   }, [profile]);
+
+  const seededForRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!seededRoute) return;
+    if (seededForRef.current === profile?.boardingStopId) return;
+    seededForRef.current = profile?.boardingStopId;
+    if (!savedRoute) {
+      updateStudentRoute(seededRoute);
+    }
+  }, [seededRoute, savedRoute, profile]);
 
   useEffect(() => {
     if (demoToggled) return;
@@ -216,14 +203,12 @@ function StudentDashboardContent() {
   }, [logout]);
 
   const handleSaveRoute = useCallback((route: StudentRoute) => {
-    setSavedRoute(route);
-    saveRoute(route);
+    updateStudentRoute(route);
     setShowRouteForm(false);
   }, []);
 
   const handleClearRoute = useCallback(() => {
-    setSavedRoute(null);
-    saveRoute(null);
+    updateStudentRoute(null);
   }, []);
 
   return (

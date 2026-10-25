@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 interface BusStop {
   id: string;
@@ -37,6 +37,19 @@ const DEFAULT_FORM = {
   platformNo: "",
 };
 
+function toFormValues(stop: BusStop) {
+  return {
+    stopName: stop.stopName,
+    sequence: stop.sequence,
+    latitude: stop.latitude,
+    longitude: stop.longitude,
+    scheduledArrival: stop.scheduledArrival,
+    scheduledDeparture: stop.scheduledDeparture,
+    distanceFromStart: stop.distanceFromStart,
+    platformNo: stop.platformNo ?? "",
+  };
+}
+
 export default function AddStopForm({
   busId,
   existingStops,
@@ -45,29 +58,12 @@ export default function AddStopForm({
   onCancel,
   onDelete,
 }: AddStopFormProps) {
-  const [form, setForm] = useState(DEFAULT_FORM);
+  const [form, setForm] = useState(() =>
+    editingStop ? toFormValues(editingStop) : { ...DEFAULT_FORM, sequence: existingStops.length + 1 }
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [geoLoading, setGeoLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  useEffect(() => {
-    if (editingStop) {
-      setForm({
-        stopName: editingStop.stopName,
-        sequence: editingStop.sequence,
-        latitude: editingStop.latitude,
-        longitude: editingStop.longitude,
-        scheduledArrival: editingStop.scheduledArrival,
-        scheduledDeparture: editingStop.scheduledDeparture,
-        distanceFromStart: editingStop.distanceFromStart,
-        platformNo: editingStop.platformNo ?? "",
-      });
-    } else {
-      setForm({ ...DEFAULT_FORM, sequence: existingStops.length + 1 });
-    }
-    setErrors({});
-    setConfirmDelete(false);
-  }, [editingStop, existingStops.length]);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));

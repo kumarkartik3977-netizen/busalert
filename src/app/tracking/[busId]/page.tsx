@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import BusHeader from "@/components/BusHeader/BusHeader";
 import StopTimeline from "@/components/StopTimeline/StopTimeline";
@@ -63,7 +63,7 @@ export default function TrackingPage() {
 
   const bus = DEMO_BUSES.find((b) => b.busId === busId);
   const route = bus ? getRouteForBus(busId) : undefined;
-  const stops: BusStop[] = bus ? getStopsForBus(busId) : [];
+  const stops: BusStop[] = useMemo(() => (bus ? getStopsForBus(busId) : []), [bus, busId]);
 
   const fetchLiveLocation = useCallback(async () => {
     try {
@@ -184,7 +184,6 @@ export default function TrackingPage() {
 
   useEffect(() => {
     if (!bus || stops.length === 0) {
-      setLoading(false);
       return;
     }
 
@@ -230,7 +229,7 @@ export default function TrackingPage() {
     tick();
   }, [tick]);
 
-  if (loading) {
+  if (loading && bus && stops.length > 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">

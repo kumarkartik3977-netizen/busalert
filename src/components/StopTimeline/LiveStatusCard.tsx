@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 interface LiveStatusCardProps {
   distanceToNextStop: number;
@@ -11,8 +11,8 @@ interface LiveStatusCardProps {
   onRefresh?: () => void;
 }
 
-function formatTimeAgo(timestamp: number): string {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+function formatTimeAgo(timestamp: number, now: number): string {
+  const seconds = Math.floor((now - timestamp) / 1000);
   if (seconds < 10) return "just now";
   if (seconds < 60) return `${seconds} secs ago`;
   const minutes = Math.floor(seconds / 60);
@@ -31,17 +31,14 @@ export default function LiveStatusCard({
   lastUpdatedAt,
   onRefresh,
 }: LiveStatusCardProps) {
-  const [timeAgo, setTimeAgo] = useState(() => formatTimeAgo(lastUpdatedAt));
-
-  const refreshTimeAgo = useCallback(() => {
-    setTimeAgo(formatTimeAgo(lastUpdatedAt));
-  }, [lastUpdatedAt]);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    refreshTimeAgo();
-    const interval = setInterval(refreshTimeAgo, 10_000);
+    const interval = setInterval(() => setNow(Date.now()), 10_000);
     return () => clearInterval(interval);
-  }, [refreshTimeAgo]);
+  }, []);
+
+  const timeAgo = formatTimeAgo(lastUpdatedAt, now);
 
   const isOnTime = delayMinutes <= 0;
 

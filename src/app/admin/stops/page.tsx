@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthGuard from "@/components/AuthGuard/AuthGuard";
 import { DEMO_BUSES, getStopsForBus } from "@/lib/demoData";
@@ -13,14 +13,14 @@ function ManageStopsContent() {
   const [stops, setStops] = useState<BusStop[]>([]);
   const [editingStop, setEditingStop] = useState<BusStop | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [loadedBusId, setLoadedBusId] = useState("");
 
-  useEffect(() => {
-    if (selectedBusId) {
-      setStops(getStopsForBus(selectedBusId));
-      setEditingStop(null);
-      setShowForm(false);
-    }
-  }, [selectedBusId]);
+  if (selectedBusId && selectedBusId !== loadedBusId) {
+    setLoadedBusId(selectedBusId);
+    setStops(getStopsForBus(selectedBusId));
+    setEditingStop(null);
+    setShowForm(false);
+  }
 
   function handleSave(stop: BusStop) {
     setStops((prev) => {
@@ -91,6 +91,7 @@ function ManageStopsContent() {
 
             {(showForm || editingStop) && (
               <AddStopForm
+                key={editingStop ? editingStop.id : "new"}
                 busId={selectedBusId}
                 existingStops={stops}
                 editingStop={editingStop}
