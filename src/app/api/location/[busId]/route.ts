@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentBusLocation, getLocationHistory } from "@/lib/locationService";
+import { getCurrentBusLocation } from "@/lib/locationService";
 
 export async function GET(
   req: NextRequest,

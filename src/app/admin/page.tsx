@@ -5,22 +5,10 @@ import { useRouter } from "next/navigation";
 import { isDemoMode, setDemoMode } from "@/lib/geolocation";
 import { useAuth } from "@/context/AuthContext";
 import AuthGuard from "@/components/AuthGuard/AuthGuard";
-import { DEMO_ANALYTICS, DEMO_ROUTES, DEMO_BUSES, DEMO_DRIVERS } from "@/lib/demoData";
+import { DEMO_ROUTES, DEMO_BUSES, DEMO_DRIVERS } from "@/lib/demoData";
 import { getRecentSignInUsers } from "@/lib/userService";
 import type { Bus, Driver, LoginRecord } from "@/types";
 import BusCard from "@/components/BusCard/BusCard";
-import * as Recharts from "recharts";
-
-interface BusAnalytics {
-  busId: string;
-  busNumber: string;
-  onTime: number;
-  delayed: number;
-  offline: number;
-  totalTrips: number;
-  averageDelay: number;
-  onTimePercentage: number;
-}
 
 function AdminDashboardContent() {
   const { logout } = useAuth();
@@ -53,11 +41,6 @@ function AdminDashboardContent() {
       setLoadingUsers(false);
     }
   }
-
-  const analytics: BusAnalytics[] = DEMO_ANALYTICS.map((a) => ({
-    ...a,
-    offline: 0,
-  }));
 
   const activeBuses = buses.length;
   const onTimeBuses = buses.filter(b => b.status === "ON_ROUTE").length;

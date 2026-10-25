@@ -177,7 +177,6 @@ function StudentDashboardContent() {
   const eta = etaResult.minutes;
 
   const originIdx = originStop ? mapRouteStops.findIndex((s) => s.stopId === originStop.stopId) : -1;
-  const destIdx = destStop ? mapRouteStops.findIndex((s) => s.stopId === destStop.stopId) : -1;
 
   const currentStopIdx = useMemo(() => {
     if (originIdx === -1) return 0;

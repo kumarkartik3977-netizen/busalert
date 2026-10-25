@@ -8,7 +8,7 @@ import LiveStatusCard from "@/components/StopTimeline/LiveStatusCard";
 import RouteProgressTimeline from "@/components/RouteProgressTimeline/RouteProgressTimeline";
 import BusRouteIndicator from "@/components/BusRouteIndicator/BusRouteIndicator";
 import { GpsSimulator } from "@/lib/simulation/gpsSimulator";
-import { calculateStopETAs, detectGeofenceArrival } from "@/lib/eta/engine";
+import { calculateStopETAs } from "@/lib/eta/engine";
 import { getStopsForBus, DEMO_BUSES, getRouteForBus } from "@/lib/demoData";
 import type { BusStop, StopETA, BusLiveStatus } from "@/types";
 import type { BusLocationSnapshot } from "@/lib/locationService";
@@ -56,7 +56,7 @@ export default function TrackingPage() {
 
   const [stopETAs, setStopETAs] = useState<StopETA[]>([]);
   const [liveStatus, setLiveStatus] = useState<BusLiveStatus | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
+  const [selectedDate] = useState<string>(getTodayString());
   const [isSimulating, setIsSimulating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dataSource, setDataSource] = useState<"live" | "simulated">("simulated");
