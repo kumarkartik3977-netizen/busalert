@@ -55,7 +55,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 anim-pop">
         <h2 className="text-3xl font-extrabold mb-1 text-center text-gray-900 tracking-tight">
           BUSALERT
         </h2>
@@ -69,7 +69,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => handleRoleSelect("student")}
-              className={`py-3 px-3 rounded-lg font-semibold transition-all ${
+              className={`py-3 px-3 rounded-lg font-semibold transition-all active:scale-95 ${
                 selectedRole === "student"
                   ? "bg-blue-600 text-white shadow-md ring-2 ring-blue-300"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -85,7 +85,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => handleRoleSelect("driver")}
-              className={`py-3 px-3 rounded-lg font-semibold transition-all ${
+              className={`py-3 px-3 rounded-lg font-semibold transition-all active:scale-95 ${
                 selectedRole === "driver"
                   ? "bg-green-600 text-white shadow-md ring-2 ring-green-300"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -101,7 +101,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => handleRoleSelect("admin")}
-              className={`py-3 px-3 rounded-lg font-semibold transition-all ${
+              className={`py-3 px-3 rounded-lg font-semibold transition-all active:scale-95 ${
                 selectedRole === "admin"
                   ? "bg-purple-600 text-white shadow-md ring-2 ring-purple-300"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -117,7 +117,7 @@ export default function LoginPage() {
             </button>
           </div>
           {selectedRole && (
-            <p className="mt-2 text-center text-sm font-medium text-gray-600">
+            <p className="mt-2 text-center text-sm font-medium text-gray-600 anim-in">
               Logging in as <span className="font-bold capitalize text-gray-900">{selectedRole}</span>
             </p>
           )}
@@ -173,7 +173,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting || !selectedRole}
-            className="w-full py-2.5 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {submitting && (
               <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -220,7 +220,7 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg anim-shake">
             <p className="text-red-700 text-sm font-medium">{error}</p>
           </div>
         )}

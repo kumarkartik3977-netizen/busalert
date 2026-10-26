@@ -49,7 +49,7 @@ const INITIAL_FORM: FormState = {
 };
 
 const inputClass = (hasError: boolean) =>
-  `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 ${
+  `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 transition-colors ${
     hasError ? "border-red-400" : "border-gray-300"
   }`;
 
@@ -184,7 +184,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4">
-      <div className="max-w-lg w-full mx-auto bg-white rounded-2xl shadow-lg p-8">
+      <div className="max-w-lg w-full mx-auto bg-white rounded-2xl shadow-lg p-8 anim-pop">
         <h2 className="text-3xl font-extrabold mb-1 text-center text-gray-900 tracking-tight">
           BUSALERT
         </h2>
@@ -193,7 +193,7 @@ export default function SignupPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-          <section className="space-y-4">
+          <section className="space-y-4 anim-up">
             <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500">
               Personal Details
             </h3>
@@ -208,7 +208,7 @@ export default function SignupPage() {
                 data-invalid={!!errors.name}
                 className={inputClass(!!errors.name)}
               />
-              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+              {errors.name && <p className="text-xs text-red-500 mt-1 anim-shake">{errors.name}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -228,7 +228,7 @@ export default function SignupPage() {
                   ))}
                 </select>
                 {errors.branch && (
-                  <p className="text-xs text-red-500 mt-1">{errors.branch}</p>
+                  <p className="text-xs text-red-500 mt-1 anim-shake">{errors.branch}</p>
                 )}
               </div>
 
@@ -258,13 +258,13 @@ export default function SignupPage() {
                 data-invalid={!!errors.mobile}
                 className={inputClass(!!errors.mobile)}
               />
-              {errors.mobile && <p className="text-xs text-red-500 mt-1">{errors.mobile}</p>}
+              {errors.mobile && <p className="text-xs text-red-500 mt-1 anim-shake">{errors.mobile}</p>}
             </div>
           </section>
 
           <hr className="border-gray-200" />
 
-          <section className="space-y-4">
+          <section className="space-y-4 anim-up anim-d1">
             <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500">
               Bus Route Details
             </h3>
@@ -284,7 +284,7 @@ export default function SignupPage() {
                   </option>
                 ))}
               </select>
-              {errors.routeId && <p className="text-xs text-red-500 mt-1">{errors.routeId}</p>}
+              {errors.routeId && <p className="text-xs text-red-500 mt-1 anim-shake">{errors.routeId}</p>}
             </div>
 
             <div>
@@ -306,7 +306,7 @@ export default function SignupPage() {
                 ))}
               </select>
               {errors.boardingStopId && (
-                <p className="text-xs text-red-500 mt-1">{errors.boardingStopId}</p>
+                <p className="text-xs text-red-500 mt-1 anim-shake">{errors.boardingStopId}</p>
               )}
             </div>
 
@@ -334,7 +334,7 @@ export default function SignupPage() {
 
           <hr className="border-gray-200" />
 
-          <section className="space-y-4">
+          <section className="space-y-4 anim-up anim-d2">
             <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500">
               Account Security
             </h3>
@@ -350,7 +350,7 @@ export default function SignupPage() {
                 data-invalid={!!errors.email}
                 className={inputClass(!!errors.email)}
               />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+              {errors.email && <p className="text-xs text-red-500 mt-1 anim-shake">{errors.email}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -380,7 +380,7 @@ export default function SignupPage() {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+                  <p className="text-xs text-red-500 mt-1 anim-shake">{errors.password}</p>
                 )}
               </div>
 
@@ -396,14 +396,14 @@ export default function SignupPage() {
                   className={inputClass(!!errors.confirmPassword)}
                 />
                 {errors.confirmPassword && (
-                  <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>
+                  <p className="text-xs text-red-500 mt-1 anim-shake">{errors.confirmPassword}</p>
                 )}
               </div>
             </div>
           </section>
 
           {serverError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg anim-shake">
               <p className="text-red-700 text-sm font-medium">{serverError}</p>
             </div>
           )}
@@ -411,7 +411,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-2.5 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {submitting && (
               <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

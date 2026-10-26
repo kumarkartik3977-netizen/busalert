@@ -293,63 +293,73 @@ export default function TrackingPage() {
         </div>
 
         {liveStatus && (
-          <LiveStatusCard
-            distanceToNextStop={liveStatus.distanceToNextStop}
-            nextStopName={liveStatus.nextStop}
-            delayMinutes={liveStatus.delayInMinutes}
-            currentSpeed={liveStatus.currentSpeedKmph}
-            lastUpdatedAt={liveStatus.lastUpdatedAt}
-            onRefresh={handleRefresh}
-          />
+          <div className="anim-up">
+            <LiveStatusCard
+              distanceToNextStop={liveStatus.distanceToNextStop}
+              nextStopName={liveStatus.nextStop}
+              delayMinutes={liveStatus.delayInMinutes}
+              currentSpeed={liveStatus.currentSpeedKmph}
+              lastUpdatedAt={liveStatus.lastUpdatedAt}
+              onRefresh={handleRefresh}
+            />
+          </div>
         )}
 
         {liveStatus && (
-          <BusRouteIndicator
-            route={route.stops.map((s, i) => ({
-              stopId: s.stopId,
-              name: s.name,
-              latitude: s.latitude,
-              longitude: s.longitude,
-              order: i,
-            }))}
-            currentStopIndex={stops.findIndex((s) => s.stopName === liveStatus.lastUpdatedStop)}
-            nextStopIndex={stops.findIndex((s) => s.stopName === liveStatus.nextStop)}
-            busNumber={bus.busNumber}
-          />
+          <div className="anim-up anim-d1">
+            <BusRouteIndicator
+              route={route.stops.map((s, i) => ({
+                stopId: s.stopId,
+                name: s.name,
+                latitude: s.latitude,
+                longitude: s.longitude,
+                order: i,
+              }))}
+              currentStopIndex={stops.findIndex((s) => s.stopName === liveStatus.lastUpdatedStop)}
+              nextStopIndex={stops.findIndex((s) => s.stopName === liveStatus.nextStop)}
+              busNumber={bus.busNumber}
+            />
+          </div>
         )}
 
         {liveStatus && (
-          <RouteProgressTimeline
-            route={route.stops.map((s, i) => ({
-              stopId: s.stopId,
-              name: s.name,
-              latitude: s.latitude,
-              longitude: s.longitude,
-              order: i,
-            }))}
-            currentStopIndex={stops.findIndex((s) => s.stopName === liveStatus.lastUpdatedStop)}
-            nextStopIndex={stops.findIndex((s) => s.stopName === liveStatus.nextStop)}
-            speed={liveStatus.currentSpeedKmph}
-            etaMinutes={liveStatus.estimatedArrivalAtNextStop}
-          />
+          <div className="anim-up anim-d2">
+            <RouteProgressTimeline
+              route={route.stops.map((s, i) => ({
+                stopId: s.stopId,
+                name: s.name,
+                latitude: s.latitude,
+                longitude: s.longitude,
+                order: i,
+              }))}
+              currentStopIndex={stops.findIndex((s) => s.stopName === liveStatus.lastUpdatedStop)}
+              nextStopIndex={stops.findIndex((s) => s.stopName === liveStatus.nextStop)}
+              speed={liveStatus.currentSpeedKmph}
+              etaMinutes={liveStatus.estimatedArrivalAtNextStop}
+            />
+          </div>
         )}
 
         {route && liveStatus && (
-          <RouteMap
-            route={route.stops}
-            currentPosition={{
-              latitude: liveStatus.currentLatitude,
-              longitude: liveStatus.currentLongitude,
-            }}
-            currentStopIndex={liveStatus.lastUpdatedStop ? stops.findIndex((s) => s.stopName === liveStatus.lastUpdatedStop) : 0}
-            nextStopIndex={liveStatus.nextStop ? stops.findIndex((s) => s.stopName === liveStatus.nextStop) : 1}
-          />
+          <div className="anim-up anim-d3">
+            <RouteMap
+              route={route.stops}
+              currentPosition={{
+                latitude: liveStatus.currentLatitude,
+                longitude: liveStatus.currentLongitude,
+              }}
+              currentStopIndex={liveStatus.lastUpdatedStop ? stops.findIndex((s) => s.stopName === liveStatus.lastUpdatedStop) : 0}
+              nextStopIndex={liveStatus.nextStop ? stops.findIndex((s) => s.stopName === liveStatus.nextStop) : 1}
+            />
+          </div>
         )}
 
-        <StopTimeline stops={stopETAs} />
+        <div className="anim-up anim-d4">
+          <StopTimeline stops={stopETAs} />
+        </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-50 border-t border-gray-200 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+      <div className="fixed bottom-0 inset-x-0 z-50 border-t border-gray-200 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)] anim-slide-up">
         <div className="mx-auto max-w-lg px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

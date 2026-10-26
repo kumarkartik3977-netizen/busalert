@@ -3,18 +3,19 @@
 import Link from "next/link";
 import { useState } from "react";
 import { isDemoMode } from "@/lib/geolocation";
+import CountUp from "@/components/CountUp/CountUp";
 
 export default function Home() {
   const [demoActive] = useState(() => isDemoMode());
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <header className="bg-white border-b border-gray-300">
+      <header className="bg-white border-b border-gray-300 anim-down">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">BUSALERT</h1>
           <Link
             href="/login"
-            className="px-4 py-2 rounded-md font-medium bg-primary text-white hover:bg-primary-dark transition-colors"
+            className="px-4 py-2 rounded-md font-medium bg-primary text-white hover:bg-primary-dark transition-all hover:-translate-y-0.5 active:scale-95 shadow-sm hover:shadow-md"
           >
             Sign In
           </Link>
@@ -23,39 +24,39 @@ export default function Home() {
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">
         <div className="text-center max-w-2xl">
-          <div className="text-6xl mb-6">🚌</div>
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+          <div className="text-6xl mb-6 anim-float">🚌</div>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4 anim-up">
             Never Miss Your Bus Again
           </h2>
-          <p className="text-lg text-gray-600 mb-8">
+          <p className="text-lg text-gray-600 mb-8 anim-up anim-d1">
             Real-time bus tracking with live ETAs, smart leave-now alerts,
             and route monitoring for students, drivers, and administrators.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 anim-up anim-d2">
             <Link
               href="/signup"
-              className="px-8 py-3 rounded-lg font-bold text-white bg-primary hover:bg-primary-dark transition-colors text-lg"
+              className="px-8 py-3 rounded-lg font-bold text-white bg-primary hover:bg-primary-dark transition-all text-lg hover:-translate-y-0.5 active:scale-95 shadow-sm hover:shadow-lg"
             >
               Get Started
             </Link>
             <Link
               href="/login"
-              className="px-8 py-3 rounded-lg font-bold text-gray-800 bg-gray-200 hover:bg-gray-300 transition-colors text-lg"
+              className="px-8 py-3 rounded-lg font-bold text-gray-800 bg-gray-200 hover:bg-gray-300 transition-all text-lg hover:-translate-y-0.5 active:scale-95"
             >
               Demo Mode
             </Link>
           </div>
 
           {demoActive && (
-            <div className="bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-lg p-4 mb-8">
+            <div className="bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-lg p-4 mb-8 anim-up">
               <p className="font-medium">Demo mode is active</p>
             </div>
           )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full mt-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover-lift anim-up anim-d2">
             <div className="text-4xl mb-3">🎓</div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Students</h3>
             <p className="text-gray-600 text-sm">
@@ -64,7 +65,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover-lift anim-up anim-d3">
             <div className="text-4xl mb-3">🚗</div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Drivers</h3>
             <p className="text-gray-600 text-sm">
@@ -73,7 +74,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover-lift anim-up anim-d4">
             <div className="text-4xl mb-3">📊</div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Admins</h3>
             <p className="text-gray-600 text-sm">
@@ -83,27 +84,27 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl w-full text-center">
+        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl w-full text-center anim-up anim-d5">
           <div>
-            <p className="text-3xl font-bold text-primary">4</p>
+            <p className="text-3xl font-bold text-primary"><CountUp end={4} /></p>
             <p className="text-sm text-gray-600">Active Buses</p>
           </div>
           <div>
-            <p className="text-3xl font-bold text-green-600">3</p>
+            <p className="text-3xl font-bold text-green-600"><CountUp end={3} /></p>
             <p className="text-sm text-gray-600">Routes</p>
           </div>
           <div>
-            <p className="text-3xl font-bold text-primary">12</p>
+            <p className="text-3xl font-bold text-primary"><CountUp end={12} /></p>
             <p className="text-sm text-gray-600">Stops</p>
           </div>
           <div>
-            <p className="text-3xl font-bold text-green-600">87%</p>
+            <p className="text-3xl font-bold text-green-600"><CountUp end={87} suffix="%" /></p>
             <p className="text-sm text-gray-600">On Time</p>
           </div>
         </div>
       </main>
 
-      <footer className="bg-white border-t border-gray-300 py-6">
+      <footer className="bg-white border-t border-gray-300 py-6 anim-in">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-500">
           BusAlert - Real-Time Bus Tracking System
         </div>
